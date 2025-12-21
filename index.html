@@ -8,14 +8,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 
 <style>
-  /* Avoid text selection / tap highlights (mobile especially) */
-  * {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-  }
-
   html, body {
     margin: 0;
     padding: 0;
@@ -23,6 +15,14 @@
     height: 100%;
     background: #8abfff;
     font-family: 'Silkscreen', monospace;
+  }
+
+  /* Avoid text selection / tap highlights (mobile especially) */
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   canvas {
@@ -76,7 +76,7 @@
   }
   #game-over.visible { display: flex; }
 
-  /* starfield layers */
+  /* starfield layers (shared with game-over) */
   #start-screen::before,
   #start-screen::after,
   #game-over::before,
@@ -135,6 +135,7 @@
     animation: twinkle 3.2s infinite alternate;
   }
 
+  /* Mountain band */
   .mountain-band {
     position: absolute;
     bottom: -20px;
@@ -157,15 +158,14 @@
     padding: 24px 32px;
   }
 
+  /* Responsive logo */
   .ice-title {
     position: relative;
     display: inline-block;
     text-transform: uppercase;
-
     font-size: clamp(44px, 8vw, 90px);
     line-height: 0.92;
     letter-spacing: clamp(2px, 0.7vw, 6px);
-
     padding: 10px 20px;
 
     background-image: linear-gradient(
@@ -259,6 +259,7 @@
     transform: translateY(-3px);
   }
 
+  /* Bottom controls bar (pill) */
   #legend {
     position: fixed;
     bottom: 10px;
@@ -271,6 +272,7 @@
     z-index: 5;
   }
 
+  /* HUD pills */
   #hud-distance-bar,
   #hud-best-bar {
     position: fixed;
@@ -295,6 +297,7 @@
 
   #restart-btn { margin-top: 20px; }
 
+  /* PAUSE OVERLAY */
   #pause-overlay {
     position: fixed;
     inset: 0;
@@ -308,6 +311,7 @@
   }
   #pause-overlay.visible { display: flex; }
 
+  /* Mobile: stack buttons + hide gameplay controls pill */
   @media (max-width: 700px), (pointer: coarse) {
     #start-inner, #game-over-inner { padding: 18px 16px; }
     .ice-title { padding: 6px 10px; }
@@ -329,7 +333,7 @@
 
     .mode-btn span.big { font-size: 26px; }
 
-    /* Mobile: hide the bottom controls pill during gameplay */
+    /* remove control description in gameplay */
     #legend { display: none; }
   }
 </style>
@@ -339,39 +343,21 @@
 <canvas id="game"></canvas>
 <canvas id="pixel-transition"></canvas>
 
+<!-- HUD -->
 <div id="hud-distance-bar"><span id="hud-distance">DISTANCE: 0m</span></div>
 <div id="hud-best-bar"><span id="hud-best">BEST: 0m</span></div>
 
-<audio id="bg-menu" loop>
-  <source src="pixelate-pixelated-dreams-313358.mp3" type="audio/mpeg">
-</audio>
+<!-- Audio -->
+<audio id="bg-menu" loop><source src="pixelate-pixelated-dreams-313358.mp3" type="audio/mpeg"></audio>
+<audio id="bg-music-1" class="bg-music" loop><source src="music-1.mp3" type="audio/mpeg"></audio>
+<audio id="bg-music-2" class="bg-music" loop><source src="music-2.mp3" type="audio/mpeg"></audio>
+<audio id="bg-music-3" class="bg-music" loop><source src="music-3.mp3" type="audio/mpeg"></audio>
+<audio id="sfx-explosion"><source src="8-bit-explosion-3-340456.mp3" type="audio/mpeg"></audio>
+<audio id="sfx-pause"><source src="pause.mp3" type="audio/mpeg"></audio>
+<audio id="sfx-step"><source src="step.mp3" type="audio/mpeg"></audio>
+<audio id="sfx-click"><source src="click.mp3" type="audio/mpeg"></audio>
 
-<audio id="bg-music-1" class="bg-music" loop>
-  <source src="music-1.mp3" type="audio/mpeg">
-</audio>
-<audio id="bg-music-2" class="bg-music" loop>
-  <source src="music-2.mp3" type="audio/mpeg">
-</audio>
-<audio id="bg-music-3" class="bg-music" loop>
-  <source src="music-3.mp3" type="audio/mpeg">
-</audio>
-
-<audio id="sfx-explosion">
-  <source src="8-bit-explosion-3-340456.mp3" type="audio/mpeg">
-</audio>
-
-<audio id="sfx-pause">
-  <source src="pause.mp3" type="audio/mpeg">
-</audio>
-
-<audio id="sfx-step">
-  <source src="step.mp3" type="audio/mpeg">
-</audio>
-
-<audio id="sfx-click">
-  <source src="click.mp3" type="audio/mpeg">
-</audio>
-
+<!-- Start screen -->
 <div id="start-screen">
   <div class="mountain-band">🗻🗻🗻🗻🗻🗻🗻🗻🗻🗻🗻🗻</div>
 
@@ -383,11 +369,13 @@
       <span class="pix pix-4"></span><span class="pix pix-5"></span><span class="pix pix-6"></span><span class="pix pix-7"></span>
     </h1>
 
+    <!-- MODE SELECT (desktop only; hidden on mobile in JS) -->
     <div id="mode-select" class="mode-buttons">
       <button id="btn-1p" class="mode-btn"><span class="big">SINGLE RIDER</span></button>
       <button id="btn-2p" class="mode-btn"><span class="big">RIDER VS RIDER</span></button>
     </div>
 
+    <!-- CHARACTER SELECT (mobile shows this directly) -->
     <div id="char-select" class="mode-buttons" style="display:none;">
       <button id="btn-char-snowboarder" class="mode-btn"><span class="big">🏂 SNOWBOARDER</span></button>
       <button id="btn-char-skier" class="mode-btn"><span class="big">⛷️ SKIER</span></button>
@@ -401,11 +389,10 @@
   </div>
 </div>
 
-<!-- Bottom Legend -->
-<div id="legend">
- Player 1: Arrow keys &nbsp;|&nbsp; Player 2: A / D
-</div>
+<!-- Desktop legend -->
+<div id="legend">Player 1: Arrow keys &nbsp;|&nbsp; Player 2: A / D</div>
 
+<!-- Game over -->
 <div id="game-over">
   <div class="mountain-band">🗻🗻🗻🗻🗻🗻🗻🗻🗻🗻🗻🗻</div>
 
@@ -425,6 +412,7 @@
   </div>
 </div>
 
+<!-- Pause -->
 <div id="pause-overlay">
   <div id="pause-inner">
     <h1 class="ice-title">
@@ -443,6 +431,7 @@
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
+// Pixel transition canvas
 const pixelCanvas = document.getElementById("pixel-transition");
 const pctx = pixelCanvas.getContext("2d");
 
@@ -450,6 +439,11 @@ const pctx = pixelCanvas.getContext("2d");
 canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 canvas.addEventListener("dragstart", (e) => e.preventDefault());
 canvas.addEventListener("selectstart", (e) => e.preventDefault());
+
+// Prevent scrolling if finger moves on canvas (older iOS)
+document.addEventListener("touchmove", (e) => {
+  if (e.target === canvas) e.preventDefault();
+}, { passive: false });
 
 function resize() {
   canvas.width = window.innerWidth;
@@ -460,6 +454,7 @@ function resize() {
     pixelCanvas.height = window.innerHeight;
   }
 }
+window.addEventListener("resize", resize);
 resize();
 
 function drawSolidBackground() {
@@ -468,7 +463,7 @@ function drawSolidBackground() {
 }
 
 // -------------------------------------
-// Mobile detection
+// Screen-size helper
 // -------------------------------------
 function isSmallScreen() {
   return window.matchMedia("(max-width: 700px), (pointer: coarse)").matches;
@@ -506,25 +501,28 @@ const snowboarder = {
   facingRight: false
 };
 
-/*
-  ADJUSTMENTS YOU ASKED FOR:
-  - Player positioned higher on mobile:
-      targetYDesktop = 200 (same as before)
-      targetYMobile  = 150 (higher up)
-  - Lower speed a bit:
-      previous: 480
-      now: 420
-*/
-const targetYDesktop = 200;
-const targetYMobile  = 150;
-function getTargetY() { return smallScreen ? targetYMobile : targetYDesktop; }
+// Speeds (desktop vs mobile)
+const SKI_SPEED_DESKTOP = 480;
+const SKI_SPEED_MOBILE  = 420;
 
-// Speeds
-const SKI_SPEED = 420;
-const SNOWBOARD_SPEED = 420;
+const SNOWBOARD_SPEED_DESKTOP = 480;
+const SNOWBOARD_SPEED_MOBILE  = 420;
 
-const TREE_SPEED = 720;
-const CRASH_SLIDE_SPEED = 720;
+const TREE_SPEED_DESKTOP = 720;
+const TREE_SPEED_MOBILE  = 620;
+
+const CRASH_SLIDE_SPEED_DESKTOP = 720;
+const CRASH_SLIDE_SPEED_MOBILE  = 620;
+
+function getSkiSpeed()        { return smallScreen ? SKI_SPEED_MOBILE : SKI_SPEED_DESKTOP; }
+function getSnowboardSpeed()  { return smallScreen ? SNOWBOARD_SPEED_MOBILE : SNOWBOARD_SPEED_DESKTOP; }
+function getTreeSpeed()       { return smallScreen ? TREE_SPEED_MOBILE : TREE_SPEED_DESKTOP; }
+function getCrashSlideSpeed() { return smallScreen ? CRASH_SLIDE_SPEED_MOBILE : CRASH_SLIDE_SPEED_DESKTOP; }
+
+// Player vertical position (higher on mobile)
+const TARGET_Y_DESKTOP = 200;
+const TARGET_Y_MOBILE  = 150;
+function getTargetY() { return smallScreen ? TARGET_Y_MOBILE : TARGET_Y_DESKTOP; }
 
 let activePlayers = [];
 let mode = null;
@@ -541,20 +539,28 @@ let bestKey = "";
 
 let snowParticles = [];
 
+// Delayed game-over handling
 let runEnded = false;
 let freezeTimeSec = 0;
 let pendingGameOverTime = 0;
 
+// Intro slide-in
 let introSliding = false;
 let introSlideStart = 0;
 const introSlideDuration = 800;
 
+// Pause state
 let paused = false;
 let pausedAt = 0;
 let pausedAccum = 0;
 
+// Frame timing
 let lastFrameTime = null;
+
+// Tree spawn timing
 let spawnTimer = 0;
+
+// Transition flag
 let transitioningToGame = false;
 
 // -------------------------------------
@@ -574,11 +580,9 @@ const modeSelectRow = document.getElementById("mode-select");
 const charSelectRow = document.getElementById("char-select");
 const btnCharSkier = document.getElementById("btn-char-skier");
 const btnCharSnowboarder = document.getElementById("btn-char-snowboarder");
-
 const startLegendEl = document.getElementById("start-legend");
-const legendBarEl = document.getElementById("legend");
 
-// Menu music
+// Menu music (start + end)
 const menuMusicEl = document.getElementById("bg-menu");
 function playMenuMusic() {
   if (!menuMusicEl) return;
@@ -593,7 +597,7 @@ function restartMenuMusic() {
   playMenuMusic();
 }
 
-// Gameplay music
+// Gameplay music: three tracks
 const musicTracks = [
   document.getElementById("bg-music-1"),
   document.getElementById("bg-music-2"),
@@ -623,12 +627,14 @@ function switchMusicTo(index) {
   if (index < 0 || index >= musicTracks.length) return;
   const current = getCurrentMusicEl();
   const wasPlaying = current && !current.paused;
+
   if (current) { current.pause(); current.currentTime = 0; }
   currentMusicIndex = index;
+
   if (wasPlaying && gameStarted && !paused && !gameOver && !runEnded) playMusic();
 }
 
-// SFX
+// Explosion SFX
 const explosionEl = document.getElementById("sfx-explosion");
 function playExplosion() {
   if (!explosionEl) return;
@@ -637,6 +643,7 @@ function playExplosion() {
   explosionEl.play().catch(() => {});
 }
 
+// UI SFX
 const pauseSfx = document.getElementById("sfx-pause");
 const stepSfx  = document.getElementById("sfx-step");
 const clickSfx = document.getElementById("sfx-click");
@@ -645,13 +652,15 @@ function playPauseSfx() { if (pauseSfx) { pauseSfx.currentTime = 0; pauseSfx.pla
 function playStepSfx()  { if (stepSfx)  { stepSfx.currentTime  = 0; stepSfx.play().catch(() => {}); } }
 function playClickSfx() { if (clickSfx) { clickSfx.currentTime = 0; clickSfx.play().catch(() => {}); } }
 
-// Start menu selection
+// -------------------------------------
+// Start menu selection (keyboard + gamepad)
+// -------------------------------------
 const modeButtons = [btn1P, btn2P];
 const charButtons = [btnCharSkier, btnCharSnowboarder];
 
 let selectedModeIndex = 0;
-let selectedCharIndex = 1;
-let menuLevel = 0;
+let selectedCharIndex = 1; // snowboarder
+let menuLevel = 0; // 0=mode, 1=character
 
 function updateMenuSelection() {
   if (menuLevel === 0) {
@@ -664,45 +673,40 @@ function updateMenuSelection() {
 }
 updateMenuSelection();
 
+// Gamepad edge detection
+let padLeftPrev = false;
+let padRightPrev = false;
+let padAPrev = false;
+let padStartPrev = false;
+
+// -------------------------------------
+// Mobile menu behavior (skip 1P/2P on mobile)
+// -------------------------------------
 function applyMenuForScreenSize() {
   smallScreen = isSmallScreen();
 
-  // Start screen text: keep for mobile
   if (smallScreen) {
     if (startLegendEl) startLegendEl.textContent = "TAP LEFT/RIGHT SIDE TO STEER";
+    // force character select
+    modeSelectRow.style.display = "none";
+    charSelectRow.style.display = "flex";
+    menuLevel = 1;
+    selectedCharIndex = 1;
   } else {
     if (startLegendEl) startLegendEl.textContent = "PLAYER 1: Arrow keys | PLAYER 2: A / D";
+    modeSelectRow.style.display = "flex";
+    charSelectRow.style.display = "none";
+    menuLevel = 0;
+    selectedModeIndex = 0;
+    selectedCharIndex = 1;
   }
-
-  // Bottom bar: desktop only (mobile hidden in CSS anyway)
-  if (legendBarEl) legendBarEl.textContent = "Player 1: Arrow keys | Player 2: A / D";
-
-  if (!gameStarted && !gameOver) {
-    if (smallScreen) {
-      modeSelectRow.style.display = "none";
-      charSelectRow.style.display = "flex";
-      menuLevel = 1;
-      selectedCharIndex = 1;
-      updateMenuSelection();
-    } else {
-      modeSelectRow.style.display = "flex";
-      charSelectRow.style.display = "none";
-      menuLevel = 0;
-      selectedModeIndex = 0;
-      selectedCharIndex = 1;
-      updateMenuSelection();
-    }
-  }
+  updateMenuSelection();
 }
-
-window.addEventListener("resize", () => {
-  resize();
-  applyMenuForScreenSize();
-});
 applyMenuForScreenSize();
+window.addEventListener("resize", applyMenuForScreenSize);
 
 // -------------------------------------
-// Start / Selection
+// Start / Mode + Character Selection
 // -------------------------------------
 function enterSinglePlayerCharacterSelect() {
   mode = "1P";
@@ -760,6 +764,7 @@ btn2P.addEventListener("click", () => { playClickSfx(); startTwoPlayer(); });
 btnCharSkier.addEventListener("click", () => { playClickSfx(); startSinglePlayer("skier"); });
 btnCharSnowboarder.addEventListener("click", () => { playClickSfx(); startSinglePlayer("snowboarder"); });
 
+// Core game-start logic
 function startGameCore() {
   gameStarted = true;
   startTime = null;
@@ -775,12 +780,11 @@ function startGameCore() {
   paused = false;
   pausedAt = 0;
   pausedAccum = 0;
-
   spawnTimer = 0;
   lastFrameTime = null;
-
   pauseOverlay.classList.remove("visible");
 
+  // Start players above screen
   [skier, snowboarder].forEach(p => {
     p.emoji = p.baseEmoji;
     p.crashed = false;
@@ -794,6 +798,7 @@ function startGameCore() {
   introSliding = true;
 }
 
+// Wrapper: transition then start
 function startGame() {
   if (transitioningToGame) return;
   transitioningToGame = true;
@@ -813,12 +818,13 @@ function startGame() {
 // -------------------------------------
 const keys = {};
 
+// Mobile touch steering (tap/hold left-right halves)
 let touchDir = 0;
 let touchActive = false;
 
 function updateTouchDirFromEvent(e) {
   if (!smallScreen) return;
-  if (!gameStarted || gameOver || paused || runEnded || transitioningToGame) return;
+  if (!gameStarted || gameOver || paused || runEnded) return;
 
   const x = e.clientX ?? (e.touches && e.touches[0] && e.touches[0].clientX);
   if (typeof x !== "number") return;
@@ -850,15 +856,17 @@ window.addEventListener("pointercancel", () => {
   touchDir = 0;
 });
 
-// prevent scrolling if finger moves on canvas (older iOS)
-document.addEventListener("touchmove", (e) => {
-  if (e.target === canvas) e.preventDefault();
-}, { passive: false });
-
 window.addEventListener("keydown", e => {
-  if (e.code === "Escape") { e.preventDefault(); restartGame(); return; }
+  // ESC always returns to the start screen
+  if (e.code === "Escape") {
+    e.preventDefault();
+    restartGame();
+    return;
+  }
+
   if (transitioningToGame) return;
 
+  // KEY 0: reset best score for current mode
   if ((e.code === "Digit0" || e.code === "Numpad0") && bestKey) {
     e.preventDefault();
     bestTime = 0;
@@ -867,12 +875,14 @@ window.addEventListener("keydown", e => {
     return;
   }
 
+  // DURING GAMEPLAY: switch music with 1 / 2 / 3
   if (gameStarted && !gameOver) {
     if (e.code === "Digit1" || e.code === "Numpad1") { e.preventDefault(); switchMusicTo(0); return; }
     if (e.code === "Digit2" || e.code === "Numpad2") { e.preventDefault(); switchMusicTo(1); return; }
     if (e.code === "Digit3" || e.code === "Numpad3") { e.preventDefault(); switchMusicTo(2); return; }
   }
 
+  // START SCREEN – keyboard navigation
   if (!gameStarted && !gameOver) {
     if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
       e.preventDefault();
@@ -890,6 +900,7 @@ window.addEventListener("keydown", e => {
     if (e.code === "Space" || e.code === "Enter") {
       e.preventDefault();
       playClickSfx();
+
       if (menuLevel === 0) {
         if (selectedModeIndex === 0) enterSinglePlayerCharacterSelect();
         else startTwoPlayer();
@@ -901,6 +912,7 @@ window.addEventListener("keydown", e => {
     }
   }
 
+  // Restart screen – keyboard restart
   if (gameOver && (e.code === "Space" || e.code === "Enter")) {
     e.preventDefault();
     playClickSfx();
@@ -908,6 +920,7 @@ window.addEventListener("keydown", e => {
     return;
   }
 
+  // P to pause, any key to unpause
   if (gameStarted && !gameOver) {
     if (!paused && e.code === "KeyP" && !runEnded) {
       paused = true;
@@ -931,6 +944,7 @@ window.addEventListener("keydown", e => {
 
 window.addEventListener("keyup", e => { keys[e.code] = false; });
 
+// Auto-pause on blur
 window.addEventListener("blur", () => {
   if (gameStarted && !gameOver && !runEnded && !paused) {
     paused = true;
@@ -940,8 +954,25 @@ window.addEventListener("blur", () => {
   }
 });
 
+function getGamepadMovement() {
+  if (!navigator.getGamepads) return null;
+  const gp = navigator.getGamepads()?.[0];
+  if (!gp) return null;
+
+  // D-pad
+  if (gp.buttons[14]?.pressed) return -1;
+  if (gp.buttons[15]?.pressed) return 1;
+
+  // Left stick
+  const axis = gp.axes[0] || 0;
+  if (axis < -0.3) return -1;
+  if (axis > 0.3) return 1;
+
+  return 0;
+}
+
 // -------------------------------------
-// Obstacles
+// Obstacles (Trees)
 // -------------------------------------
 function spawnTreeCluster() {
   const t = currentTimeSec;
@@ -957,7 +988,7 @@ function spawnTreeCluster() {
       y: canvas.height + 50 + Math.random() * 50,
       emoji: "🌲",
       size: 50,
-      speed: TREE_SPEED
+      speed: getTreeSpeed()
     });
   }
 }
@@ -1015,7 +1046,7 @@ function drawSnowDust() {
 }
 
 // -------------------------------------
-// Game Over / Restart
+// Game Over
 // -------------------------------------
 function endGame() {
   if (gameOver) return;
@@ -1051,6 +1082,7 @@ function endGame() {
   restartBtn.classList.add("selected");
 }
 
+// Restart back to START SCREEN (no reload)
 function restartGame() {
   gameStarted = false;
   gameOver = false;
@@ -1068,15 +1100,15 @@ function restartGame() {
   paused = false;
   pausedAt = 0;
   pausedAccum = 0;
-
   spawnTimer = 0;
   lastFrameTime = null;
-
-  touchActive = false;
-  touchDir = 0;
+  pauseOverlay.classList.remove("visible");
 
   obstacles = [];
   snowParticles = [];
+
+  touchActive = false;
+  touchDir = 0;
 
   [skier, snowboarder].forEach(p => {
     p.emoji = p.baseEmoji;
@@ -1089,14 +1121,19 @@ function restartGame() {
 
   hudDistanceEl.textContent = "DISTANCE: 0m";
 
+  // show start screen, hide game over
   startScreen.style.display = "flex";
   gameOverOverlay.classList.remove("visible");
-  restartBtn.classList.remove("selected");
 
+  // re-apply correct menu for current screen size
   applyMenuForScreenSize();
 }
 
-restartBtn.onclick = () => { playClickSfx(); restartGame(); };
+// restart with mouse
+restartBtn.onclick = () => {
+  playClickSfx();
+  restartGame();
+};
 
 // -------------------------------------
 // EASING
@@ -1108,10 +1145,13 @@ function easeOutBack(t) {
 }
 
 // -------------------------------------
-// Pixel transition
+// Pixelated stripe transition
 // -------------------------------------
 function startPixelTransition(onDone) {
-  if (!pixelCanvas || !pctx) { if (onDone) onDone(); return; }
+  if (!pixelCanvas || !pctx) {
+    if (onDone) onDone();
+    return;
+  }
 
   pixelCanvas.width = window.innerWidth;
   pixelCanvas.height = window.innerHeight;
@@ -1144,8 +1184,9 @@ function startPixelTransition(onDone) {
 
     const totalDuration = (stripeCount - 1) * stripeDelay + stripeDuration;
 
-    if (elapsed < totalDuration) requestAnimationFrame(animate);
-    else {
+    if (elapsed < totalDuration) {
+      requestAnimationFrame(animate);
+    } else {
       if (onDone) onDone();
       pixelCanvas.style.display = "none";
     }
@@ -1155,23 +1196,104 @@ function startPixelTransition(onDone) {
 }
 
 // -------------------------------------
-// Main Loop
+// Main Game Loop
 // -------------------------------------
 function update(timestamp) {
   drawSolidBackground();
 
+  // Delta time
   if (lastFrameTime === null) lastFrameTime = timestamp;
   let dt = (timestamp - lastFrameTime) / 1000;
   if (dt > 0.05) dt = 0.05;
   lastFrameTime = timestamp;
 
-  // Start time init
+  // GAMEPAD STATE (menus + restart + pause)
+  let gpLeft = false, gpRight = false, gpA = false, gpStart = false;
+
+  if (navigator.getGamepads) {
+    const gp = navigator.getGamepads()?.[0];
+    if (gp) {
+      gpLeft = !!gp.buttons[14]?.pressed;
+      gpRight = !!gp.buttons[15]?.pressed;
+
+      const axis = gp.axes[0] || 0;
+      if (axis < -0.3) gpLeft = true;
+      if (axis > 0.3) gpRight = true;
+
+      gpA = !!gp.buttons[1]?.pressed;
+      gpStart = !!gp.buttons[9]?.pressed;
+    }
+  }
+
+  // START MENU – gamepad navigation
+  if (!gameStarted && !gameOver && !transitioningToGame) {
+    if (gpLeft && !padLeftPrev) {
+      if (menuLevel === 0) selectedModeIndex = (selectedModeIndex - 1 + modeButtons.length) % modeButtons.length;
+      else selectedCharIndex = (selectedCharIndex - 1 + charButtons.length) % charButtons.length;
+      updateMenuSelection();
+      playStepSfx();
+      playMenuMusic();
+    }
+
+    if (gpRight && !padRightPrev) {
+      if (menuLevel === 0) selectedModeIndex = (selectedModeIndex + 1) % modeButtons.length;
+      else selectedCharIndex = (selectedCharIndex + 1) % charButtons.length;
+      updateMenuSelection();
+      playStepSfx();
+      playMenuMusic();
+    }
+
+    if (gpA && !padAPrev) {
+      playClickSfx();
+      if (menuLevel === 0) {
+        if (selectedModeIndex === 0) enterSinglePlayerCharacterSelect();
+        else startTwoPlayer();
+      } else {
+        if (selectedCharIndex === 0) startSinglePlayer("skier");
+        else startSinglePlayer("snowboarder");
+      }
+    }
+
+    padLeftPrev = gpLeft;
+    padRightPrev = gpRight;
+    padAPrev = gpA;
+    padStartPrev = gpStart;
+
+    requestAnimationFrame(update);
+    return;
+  }
+
+  // RESTART SCREEN – gamepad A
+  if (gameOver && gpA && !padAPrev) {
+    playClickSfx();
+    restartGame();
+  }
+
   if (!startTime && gameStarted) startTime = timestamp;
 
   if (runEnded) currentTimeSec = freezeTimeSec;
   else if (!paused && gameStarted) currentTimeSec = (timestamp - startTime - pausedAccum) / 1000;
 
-  // Intro slide-in to target Y (mobile/desktop differ)
+  // GAMEPAD START pause/unpause
+  if (gameStarted && !gameOver && !runEnded) {
+    if (gpStart && !padStartPrev) {
+      if (!paused) {
+        paused = true;
+        pausedAt = performance.now();
+        pauseOverlay.classList.add("visible");
+        playPauseSfx();
+        pauseMusic();
+      } else {
+        pausedAccum += performance.now() - pausedAt;
+        paused = false;
+        pausedAt = 0;
+        pauseOverlay.classList.remove("visible");
+        playMusic();
+      }
+    }
+  }
+
+  // Intro slide-in (to higher Y on mobile)
   if (introSliding) {
     const elapsed = timestamp - introSlideStart;
     const t = Math.min(elapsed / introSlideDuration, 1);
@@ -1191,57 +1313,80 @@ function update(timestamp) {
   }
 
   if (gameStarted && !gameOver) {
+    // Movement
     if (!runEnded && !paused) {
       if (mode === "1P") {
         const p = activePlayers[0];
         if (p && !p.crashed) {
-          const dir = smallScreen
-            ? touchDir
-            : (keys["ArrowLeft"] ? -1 : 0) + (keys["ArrowRight"] ? 1 : 0);
+          let dir = 0;
+
+          if (smallScreen) {
+            dir = touchDir;
+          } else {
+            dir = getGamepadMovement();
+            if (dir === null) {
+              dir = (keys["ArrowLeft"] ? -1 : 0) + (keys["ArrowRight"] ? 1 : 0);
+            }
+          }
 
           if (dir > 0) p.facingRight = true;
           else if (dir < 0) p.facingRight = false;
 
-          const speed = (p === skier) ? SKI_SPEED : SNOWBOARD_SPEED;
+          const speed = (p === skier) ? getSkiSpeed() : getSnowboardSpeed();
           p.x = Math.max(40, Math.min(canvas.width - 40, p.x + dir * speed * dt));
         }
       } else if (mode === "2P") {
-        // (desktop only intended)
+        // Snowboarder (Arrow keys / gamepad)
         if (!snowboarder.crashed && activePlayers.includes(snowboarder)) {
-          const dirSnow = (keys["ArrowLeft"] ? -1 : 0) + (keys["ArrowRight"] ? 1 : 0);
+          let dirSnow = getGamepadMovement();
+          if (dirSnow === null) {
+            dirSnow = (keys["ArrowLeft"] ? -1 : 0) + (keys["ArrowRight"] ? 1 : 0);
+          }
           if (dirSnow > 0) snowboarder.facingRight = true;
           else if (dirSnow < 0) snowboarder.facingRight = false;
-          snowboarder.x = Math.max(40, Math.min(canvas.width - 40, snowboarder.x + dirSnow * SNOWBOARD_SPEED * dt));
+
+          snowboarder.x = Math.max(40, Math.min(canvas.width - 40, snowboarder.x + dirSnow * getSnowboardSpeed() * dt));
         }
 
+        // Skier (A / D)
         if (!skier.crashed && activePlayers.includes(skier)) {
-          const dirSki = (keys["KeyA"] ? -1 : 0) + (keys["KeyD"] ? 1 : 0);
+          let dirSki = (keys["KeyA"] ? -1 : 0) + (keys["KeyD"] ? 1 : 0);
           if (dirSki > 0) skier.facingRight = true;
           else if (dirSki < 0) skier.facingRight = false;
-          skier.x = Math.max(40, Math.min(canvas.width - 40, skier.x + dirSki * SKI_SPEED * dt));
+
+          skier.x = Math.max(40, Math.min(canvas.width - 40, skier.x + dirSki * getSkiSpeed() * dt));
         }
       }
     }
 
+    // Updates (not paused)
     if (!paused) {
       activePlayers.forEach(spawnSnowDustForPlayer);
       updateSnowDust(dt);
 
       if (!runEnded) {
-        const spawnProbPerFrameAt60 = Math.min(0.03 + currentTimeSec * 0.003, 0.35);
-        const clustersPerSecond = spawnProbPerFrameAt60 * 60;
+        const spawnProbPerFrameAt60fps = Math.min(0.03 + currentTimeSec * 0.003, 0.35);
+        const clustersPerSecond = spawnProbPerFrameAt60fps * 60;
         spawnTimer += dt * clustersPerSecond;
-        while (spawnTimer >= 1) { spawnTreeCluster(); spawnTimer -= 1; }
+        while (spawnTimer >= 1) {
+          spawnTreeCluster();
+          spawnTimer -= 1;
+        }
       }
 
       obstacles.forEach(o => { o.y -= o.speed * dt; });
       obstacles = obstacles.filter(o => o.y > -80);
 
-      activePlayers.forEach(p => { if (p.crashed) p.y -= CRASH_SLIDE_SPEED * dt; });
+      // Crash slide speed (slower on mobile)
+      activePlayers.forEach(p => {
+        if (p.crashed) p.y -= getCrashSlideSpeed() * dt;
+      });
     }
 
+    // Draw snow dust
     drawSnowDust();
 
+    // Draw obstacles and players
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
@@ -1261,6 +1406,7 @@ function update(timestamp) {
       }
     });
 
+    // Collisions
     if (!runEnded && !paused) {
       obstacles.forEach(o => {
         activePlayers.forEach(p => {
@@ -1288,13 +1434,21 @@ function update(timestamp) {
       });
     }
 
+    // Trigger game over after delay
     if (runEnded && !gameOver && timestamp >= pendingGameOverTime) endGame();
 
+    // HUD
     const timeForHud = runEnded ? freezeTimeSec : currentTimeSec;
     const metersNow = timeForHud * 10;
+
     hudDistanceEl.textContent = `DISTANCE: ${metersNow.toFixed(0)}m`;
     hudBestEl.textContent = `BEST: ${(bestTime * 10).toFixed(0)}m`;
   }
+
+  padLeftPrev = gpLeft;
+  padRightPrev = gpRight;
+  padAPrev = gpA;
+  padStartPrev = gpStart;
 
   requestAnimationFrame(update);
 }
