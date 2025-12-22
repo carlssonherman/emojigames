@@ -17,7 +17,6 @@
     font-family: 'Silkscreen', monospace;
   }
 
-  /* Avoid text selection / tap highlights (mobile especially) */
   * {
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
@@ -32,10 +31,8 @@
     user-select: none;
   }
 
-  /* Mobile: prevent scrolling/zoom gestures interfering with gameplay */
   html, body, canvas { touch-action: none; }
 
-  /* Pixel transition overlay */
   #pixel-transition {
     position: fixed;
     inset: 0;
@@ -47,7 +44,6 @@
 
   #pause-inner { text-align: center; }
 
-  /* Start Screen Overlay – starry night */
   #start-screen {
     position: fixed;
     inset: 0;
@@ -60,7 +56,6 @@
     overflow: hidden;
   }
 
-  /* GAME OVER (same style as start) */
   #game-over {
     position: fixed;
     inset: 0;
@@ -74,7 +69,6 @@
   }
   #game-over.visible { display: flex; }
 
-  /* starfield layers */
   #start-screen::before,
   #start-screen::after,
   #game-over::before,
@@ -155,7 +149,6 @@
     padding: 24px 32px;
   }
 
-  /* Responsive logo */
   .ice-title {
     position: relative;
     display: inline-block;
@@ -305,11 +298,9 @@
   }
   #pause-overlay.visible { display: flex; }
 
-  /* Mobile: stack buttons + hide gameplay legend */
   @media (max-width: 700px), (pointer: coarse) {
     #start-inner, #game-over-inner { padding: 18px 16px; }
     .ice-title { padding: 6px 10px; }
-    .mountain-band { font-size: 110px; }
 
     .mode-buttons {
       flex-direction: column;
@@ -328,6 +319,7 @@
     .mode-btn span.big { font-size: 26px; }
 
     #legend { display: none; }
+    .mountain-band { display: none; }
   }
 </style>
 </head>
@@ -374,7 +366,7 @@
     <p id="start-legend">PLAYER 1: Arrow keys &nbsp;|&nbsp; PLAYER 2: A / D</p>
 
     <br><br><br>
-    <p>© gröndal games</p>
+    <p>© emoji games</p>
   </div>
 </div>
 
@@ -411,17 +403,11 @@
 </div>
 
 <script>
-// -------------------------------------
-// Canvas Setup
-// -------------------------------------
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
-
-// Pixel transition canvas
 const pixelCanvas = document.getElementById("pixel-transition");
 const pctx = pixelCanvas.getContext("2d");
 
-// Prevent selection/long-press/drag on the canvas
 canvas.addEventListener("contextmenu", (e) => e.preventDefault());
 canvas.addEventListener("dragstart", (e) => e.preventDefault());
 canvas.addEventListener("selectstart", (e) => e.preventDefault());
@@ -443,27 +429,21 @@ function drawSolidBackground() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
-// -------------------------------------
-// Mobile detection
-// -------------------------------------
 function isSmallScreen() {
   return window.matchMedia("(max-width: 700px), (pointer: coarse)").matches;
 }
 let smallScreen = isSmallScreen();
 
-// -------------------------------------
 // EASY MOBILE TUNING (EDIT THESE)
-// -------------------------------------
-// Trees per cluster:
 const DESKTOP_CLUSTER_BASE = 3;
 const DESKTOP_CLUSTER_EXTRA_CAP = 7;
-const DESKTOP_CLUSTER_RAND_MAX = 1; // adds 0..1
+const DESKTOP_CLUSTER_RAND_MAX = 1;
 
-const MOBILE_CLUSTER_BASE = 1;      // <- fewer trees baseline on mobile
-const MOBILE_CLUSTER_EXTRA_CAP = 3; // <- slower difficulty ramp on mobile
-const MOBILE_CLUSTER_RAND_MAX = 1;  // adds 0..1
+/* ✅ MOBILE: ALWAYS 1 TREE PER "CLUSTER" */
+const MOBILE_CLUSTER_BASE = 1;
+const MOBILE_CLUSTER_EXTRA_CAP = 0;
+const MOBILE_CLUSTER_RAND_MAX = 0;
 
-// Cluster spawn rate curve (approx original logic, but mobile is gentler):
 const DESKTOP_SPAWN_BASE = 0.03;
 const DESKTOP_SPAWN_RAMP = 0.003;
 const DESKTOP_SPAWN_CAP  = 0.35;
@@ -472,9 +452,7 @@ const MOBILE_SPAWN_BASE = 0.022;
 const MOBILE_SPAWN_RAMP = 0.0022;
 const MOBILE_SPAWN_CAP  = 0.26;
 
-// -------------------------------------
-// Players & Game State
-// -------------------------------------
+// Players
 const skier = {
   id: "P1",
   label: "Skier",
@@ -488,7 +466,6 @@ const skier = {
   crashMeters: 0,
   facingRight: false
 };
-
 const snowboarder = {
   id: "P2",
   label: "Snowboarder",
@@ -503,16 +480,13 @@ const snowboarder = {
   facingRight: false
 };
 
-// Speeds (desktop vs mobile)
+// Speeds
 const SKI_SPEED_DESKTOP = 480;
 const SKI_SPEED_MOBILE  = 420;
-
 const SNOWBOARD_SPEED_DESKTOP = 480;
 const SNOWBOARD_SPEED_MOBILE  = 420;
-
 const TREE_SPEED_DESKTOP = 720;
 const TREE_SPEED_MOBILE  = 620;
-
 const CRASH_SLIDE_SPEED_DESKTOP = 720;
 const CRASH_SLIDE_SPEED_MOBILE  = 620;
 
@@ -521,23 +495,18 @@ function getSnowboardSpeed()  { return smallScreen ? SNOWBOARD_SPEED_MOBILE : SN
 function getTreeSpeed()       { return smallScreen ? TREE_SPEED_MOBILE : TREE_SPEED_DESKTOP; }
 function getCrashSlideSpeed() { return smallScreen ? CRASH_SLIDE_SPEED_MOBILE : CRASH_SLIDE_SPEED_DESKTOP; }
 
-// Player vertical position (higher on mobile)
 const TARGET_Y_DESKTOP = 200;
 const TARGET_Y_MOBILE  = 150;
 function getTargetY() { return smallScreen ? TARGET_Y_MOBILE : TARGET_Y_DESKTOP; }
 
 let activePlayers = [];
 let mode = null;
-let singlePlayerCharacter = "snowboarder";
 let gameStarted = false;
 
 let obstacles = [];
 let startTime = null;
 let currentTimeSec = 0;
 let gameOver = false;
-
-let bestTime = 0;
-let bestKey = "";
 
 let snowParticles = [];
 
@@ -557,15 +526,12 @@ let lastFrameTime = null;
 let spawnTimer = 0;
 let transitioningToGame = false;
 
-// -------------------------------------
-// UI Elements
-// -------------------------------------
+// UI
 const startScreen = document.getElementById("start-screen");
 const btn1P = document.getElementById("btn-1p");
 const btn2P = document.getElementById("btn-2p");
 const restartBtn = document.getElementById("restart-btn");
 const hudDistanceEl = document.getElementById("hud-distance");
-const hudBestEl = document.getElementById("hud-best");
 const gameOverOverlay = document.getElementById("game-over");
 const resultTextEl = document.getElementById("result-text");
 const pauseOverlay = document.getElementById("pause-overlay");
@@ -576,7 +542,7 @@ const btnCharSkier = document.getElementById("btn-char-skier");
 const btnCharSnowboarder = document.getElementById("btn-char-snowboarder");
 const startLegendEl = document.getElementById("start-legend");
 
-// Menu music
+// Music
 const menuMusicEl = document.getElementById("bg-menu");
 function playMenuMusic() {
   if (!menuMusicEl) return;
@@ -613,14 +579,6 @@ function restartMusic() {
   el.currentTime = 0;
   playMusic();
 }
-function switchMusicTo(index) {
-  if (index < 0 || index >= musicTracks.length) return;
-  const current = getCurrentMusicEl();
-  const wasPlaying = current && !current.paused;
-  if (current) { current.pause(); current.currentTime = 0; }
-  currentMusicIndex = index;
-  if (wasPlaying && gameStarted && !paused && !gameOver && !runEnded) playMusic();
-}
 
 // SFX
 const explosionEl = document.getElementById("sfx-explosion");
@@ -637,116 +595,39 @@ function playPauseSfx() { if (pauseSfx) { pauseSfx.currentTime = 0; pauseSfx.pla
 function playStepSfx()  { if (stepSfx)  { stepSfx.currentTime = 0; stepSfx.play().catch(() => {}); } }
 function playClickSfx() { if (clickSfx) { clickSfx.currentTime = 0; clickSfx.play().catch(() => {}); } }
 
-// Menu selection (keyboard/gamepad)
-const modeButtons = [btn1P, btn2P];
-const charButtons = [btnCharSkier, btnCharSnowboarder];
-let selectedModeIndex = 0;
-let selectedCharIndex = 1;
-let menuLevel = 0;
-function updateMenuSelection() {
-  if (menuLevel === 0) {
-    modeButtons.forEach((btn, idx) => btn.classList.toggle("selected", idx === selectedModeIndex));
-    charButtons.forEach(btn => btn.classList.remove("selected"));
-  } else {
-    charButtons.forEach((btn, idx) => btn.classList.toggle("selected", idx === selectedCharIndex));
-    modeButtons.forEach(btn => btn.classList.remove("selected"));
-  }
-}
-updateMenuSelection();
-
-let padLeftPrev = false;
-let padRightPrev = false;
-let padAPrev = false;
-let padStartPrev = false;
-
-// -------------------------------------
 // Mobile menu behavior
-// -------------------------------------
 function applyMenuForScreenSize() {
   smallScreen = isSmallScreen();
-
   if (smallScreen) {
     startLegendEl.textContent = "TAP LEFT/RIGHT SIDE TO STEER";
     modeSelectRow.style.display = "none";
     charSelectRow.style.display = "flex";
-    menuLevel = 1;
-    selectedCharIndex = 1;
   } else {
     startLegendEl.textContent = "PLAYER 1: Arrow keys | PLAYER 2: A / D";
     modeSelectRow.style.display = "flex";
     charSelectRow.style.display = "none";
-    menuLevel = 0;
-    selectedModeIndex = 0;
-    selectedCharIndex = 1;
   }
-  updateMenuSelection();
 }
 applyMenuForScreenSize();
 window.addEventListener("resize", applyMenuForScreenSize);
 
-// -------------------------------------
-// Start / Selection
-// -------------------------------------
-function enterSinglePlayerCharacterSelect() {
-  mode = "1P";
-  menuLevel = 1;
-  selectedCharIndex = 1;
-  modeSelectRow.style.display = "none";
-  charSelectRow.style.display = "flex";
-  updateMenuSelection();
-}
-
+// Start selection
 function startSinglePlayer(character) {
   mode = "1P";
-  singlePlayerCharacter = character;
-
-  if (character === "skier") {
-    activePlayers = [skier];
-    skier.x = canvas.width / 2;
-  } else {
-    activePlayers = [snowboarder];
-    snowboarder.x = canvas.width / 2;
-  }
-
-  bestKey = "bestTime1P_spruce";
-  bestTime = parseFloat(localStorage.getItem(bestKey) || "0");
+  activePlayers = [character === "skier" ? skier : snowboarder];
+  activePlayers[0].x = canvas.width / 2;
   startGame();
 }
 
-function startTwoPlayer() {
-  mode = "2P";
-  skier.x = canvas.width / 2 - 80;
-  snowboarder.x = canvas.width / 2 + 80;
-
-  skier.lastX = skier.x;
-  snowboarder.lastX = snowboarder.x;
-
-  skier.crashed = false;
-  snowboarder.crashed = false;
-  skier.crashMeters = 0;
-  snowboarder.crashMeters = 0;
-
-  skier.emoji = skier.baseEmoji;
-  snowboarder.emoji = snowboarder.baseEmoji;
-
-  skier.facingRight = false;
-  snowboarder.facingRight = false;
-
-  activePlayers = [skier, snowboarder];
-  bestKey = "bestTime2P_spruce";
-  bestTime = parseFloat(localStorage.getItem(bestKey) || "0");
-  startGame();
-}
-
-btn1P.addEventListener("click", () => { playClickSfx(); enterSinglePlayerCharacterSelect(); });
-btn2P.addEventListener("click", () => { playClickSfx(); startTwoPlayer(); });
 btnCharSkier.addEventListener("click", () => { playClickSfx(); startSinglePlayer("skier"); });
 btnCharSnowboarder.addEventListener("click", () => { playClickSfx(); startSinglePlayer("snowboarder"); });
+btn1P.addEventListener("click", () => { playClickSfx(); });
+btn2P.addEventListener("click", () => { playClickSfx(); });
 
+// Start game
 function startGameCore() {
   gameStarted = true;
   startTime = null;
-
   obstacles = [];
   snowParticles = [];
   gameOver = false;
@@ -761,7 +642,6 @@ function startGameCore() {
 
   spawnTimer = 0;
   lastFrameTime = null;
-
   pauseOverlay.classList.remove("visible");
 
   [skier, snowboarder].forEach(p => {
@@ -791,12 +671,8 @@ function startGame() {
   });
 }
 
-// -------------------------------------
 // Input
-// -------------------------------------
 const keys = {};
-
-// Mobile touch steering
 let touchDir = 0;
 let touchActive = false;
 
@@ -835,108 +711,13 @@ window.addEventListener("pointercancel", () => {
 });
 
 window.addEventListener("keydown", e => {
-  if (e.code === "Escape") { e.preventDefault(); restartGame(); return; }
-  if (transitioningToGame) return;
-
-  if ((e.code === "Digit0" || e.code === "Numpad0") && bestKey) {
-    e.preventDefault();
-    bestTime = 0;
-    localStorage.removeItem(bestKey);
-    hudBestEl.textContent = "BEST: 0m";
-    return;
-  }
-
-  if (gameStarted && !gameOver) {
-    if (e.code === "Digit1" || e.code === "Numpad1") { e.preventDefault(); switchMusicTo(0); return; }
-    if (e.code === "Digit2" || e.code === "Numpad2") { e.preventDefault(); switchMusicTo(1); return; }
-    if (e.code === "Digit3" || e.code === "Numpad3") { e.preventDefault(); switchMusicTo(2); return; }
-  }
-
-  if (!gameStarted && !gameOver) {
-    if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
-      e.preventDefault();
-      if (menuLevel === 0) {
-        selectedModeIndex = (selectedModeIndex + (e.code === "ArrowLeft" ? -1 : 1) + modeButtons.length) % modeButtons.length;
-      } else {
-        selectedCharIndex = (selectedCharIndex + (e.code === "ArrowLeft" ? -1 : 1) + charButtons.length) % charButtons.length;
-      }
-      updateMenuSelection();
-      playStepSfx();
-      playMenuMusic();
-      return;
-    }
-
-    if (e.code === "Space" || e.code === "Enter") {
-      e.preventDefault();
-      playClickSfx();
-
-      if (menuLevel === 0) {
-        if (selectedModeIndex === 0) enterSinglePlayerCharacterSelect();
-        else startTwoPlayer();
-      } else {
-        if (selectedCharIndex === 0) startSinglePlayer("skier");
-        else startSinglePlayer("snowboarder");
-      }
-      return;
-    }
-  }
-
-  if (gameOver && (e.code === "Space" || e.code === "Enter")) {
-    e.preventDefault();
-    playClickSfx();
-    restartGame();
-    return;
-  }
-
-  if (gameStarted && !gameOver) {
-    if (!paused && e.code === "KeyP" && !runEnded) {
-      paused = true;
-      pausedAt = performance.now();
-      pauseOverlay.classList.add("visible");
-      playPauseSfx();
-      pauseMusic();
-      return;
-    } else if (paused) {
-      pausedAccum += performance.now() - pausedAt;
-      paused = false;
-      pausedAt = 0;
-      pauseOverlay.classList.remove("visible");
-      playMusic();
-      return;
-    }
-  }
-
   keys[e.code] = true;
 });
-window.addEventListener("keyup", e => { keys[e.code] = false; });
-
-window.addEventListener("blur", () => {
-  if (gameStarted && !gameOver && !runEnded && !paused) {
-    paused = true;
-    pausedAt = performance.now();
-    pauseOverlay.classList.add("visible");
-    pauseMusic();
-  }
+window.addEventListener("keyup", e => {
+  keys[e.code] = false;
 });
 
-function getGamepadMovement() {
-  if (!navigator.getGamepads) return null;
-  const gp = navigator.getGamepads()?.[0];
-  if (!gp) return null;
-
-  if (gp.buttons[14]?.pressed) return -1;
-  if (gp.buttons[15]?.pressed) return 1;
-
-  const axis = gp.axes[0] || 0;
-  if (axis < -0.3) return -1;
-  if (axis > 0.3) return 1;
-
-  return 0;
-}
-
-// -------------------------------------
-// Trees / Obstacles (MOBILE TUNING HERE)
-// -------------------------------------
+// Trees / Obstacles
 function getClusterParams(timeSec) {
   const extra = Math.min(Math.floor(timeSec / 5), 7);
 
@@ -947,7 +728,6 @@ function getClusterParams(timeSec) {
       randMax: MOBILE_CLUSTER_RAND_MAX
     };
   }
-
   return {
     base: DESKTOP_CLUSTER_BASE,
     extraCap: Math.min(extra, DESKTOP_CLUSTER_EXTRA_CAP),
@@ -958,8 +738,8 @@ function getClusterParams(timeSec) {
 function spawnTreeCluster() {
   const t = currentTimeSec;
   const { base, extraCap, randMax } = getClusterParams(t);
-  const rand = Math.floor(Math.random() * (randMax + 1)); // 0..randMax
-  const count = base + extraCap + rand;
+  const rand = Math.floor(Math.random() * (randMax + 1));
+  const count = base + extraCap + rand; // mobile = always 1
 
   const baseX = Math.random() * (canvas.width - 160) + 80;
   const spread = 60 + extraCap * 15;
@@ -981,18 +761,13 @@ function collided(player, obstacle) {
   return Math.sqrt(dx * dx + dy * dy) < 50;
 }
 
-// -------------------------------------
-// Snow dust
-// -------------------------------------
+// Snow dust (kept minimal)
 function spawnSnowDustForPlayer(player) {
   if (player.crashed) return;
-
   const lastX = player.lastX ?? player.x;
   const dx = player.x - lastX;
   player.lastX = player.x;
-
   const intensity = Math.abs(dx) > 0.5 ? 3 : 1;
-
   for (let i = 0; i < intensity; i++) {
     snowParticles.push({
       x: player.x + (Math.random() - 0.5) * 18,
@@ -1004,7 +779,6 @@ function spawnSnowDustForPlayer(player) {
     });
   }
 }
-
 function updateSnowDust(dt) {
   for (let i = snowParticles.length - 1; i >= 0; i--) {
     const p = snowParticles[i];
@@ -1013,13 +787,7 @@ function updateSnowDust(dt) {
     p.life -= dt;
     if (p.life <= 0) snowParticles.splice(i, 1);
   }
-
-  const MAX_PARTICLES = 400;
-  if (snowParticles.length > MAX_PARTICLES) {
-    snowParticles.splice(0, snowParticles.length - MAX_PARTICLES);
-  }
 }
-
 function drawSnowDust() {
   ctx.save();
   ctx.fillStyle = "rgba(255,255,255,0.9)";
@@ -1027,41 +795,15 @@ function drawSnowDust() {
   ctx.restore();
 }
 
-// -------------------------------------
 // Game Over / Restart
-// -------------------------------------
 function endGame() {
   if (gameOver) return;
   gameOver = true;
-
   pauseMusic();
   restartMenuMusic();
-
-  const prevBest = parseFloat(localStorage.getItem(bestKey) || "0");
-  const isNew = freezeTimeSec > prevBest;
-
-  if (isNew) {
-    bestTime = freezeTimeSec;
-    localStorage.setItem(bestKey, bestTime.toString());
-  } else {
-    bestTime = prevBest;
-  }
-
-  if (mode === "1P") {
-    const p = activePlayers[0] || snowboarder;
-    const meters = Math.round(p.crashMeters || freezeTimeSec * 10);
-    resultTextEl.textContent = `you made it ${meters} meters`;
-  } else if (mode === "2P") {
-    const p1m = Math.round(snowboarder.crashMeters || freezeTimeSec * 10);
-    const p2m = Math.round(skier.crashMeters || freezeTimeSec * 10);
-    resultTextEl.textContent = `Player 1: ${p1m} meters | Player 2: ${p2m} meters`;
-  } else {
-    const meters = Math.round(freezeTimeSec * 10);
-    resultTextEl.textContent = `you made it ${meters} meters`;
-  }
-
+  const meters = Math.round(freezeTimeSec * 10);
+  resultTextEl.textContent = `you made it ${meters} meters`;
   gameOverOverlay.classList.add("visible");
-  restartBtn.classList.add("selected");
 }
 
 function restartGame() {
@@ -1081,9 +823,9 @@ function restartGame() {
   paused = false;
   pausedAt = 0;
   pausedAccum = 0;
+
   spawnTimer = 0;
   lastFrameTime = null;
-  pauseOverlay.classList.remove("visible");
 
   obstacles = [];
   snowParticles = [];
@@ -1101,23 +843,18 @@ function restartGame() {
   });
 
   hudDistanceEl.textContent = "DISTANCE: 0m";
-
   startScreen.style.display = "flex";
   gameOverOverlay.classList.remove("visible");
   applyMenuForScreenSize();
 }
-
 restartBtn.onclick = () => { playClickSfx(); restartGame(); };
 
-// -------------------------------------
-// Easing + Transition
-// -------------------------------------
+// Transition
 function easeOutBack(t) {
   const c1 = 0.2;
   const c3 = c1 + 1;
   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 }
-
 function startPixelTransition(onDone) {
   pixelCanvas.width = window.innerWidth;
   pixelCanvas.height = window.innerHeight;
@@ -1129,7 +866,6 @@ function startPixelTransition(onDone) {
   const stripeDelay = 80;
 
   let start = null;
-
   function animate(ts) {
     if (start === null) start = ts;
     const elapsed = ts - start;
@@ -1140,11 +876,9 @@ function startPixelTransition(onDone) {
     for (let i = 0; i < stripeCount; i++) {
       const local = elapsed - i * stripeDelay;
       if (local <= 0) continue;
-
       const progress = Math.min(local / stripeDuration, 1);
       const w = pixelCanvas.width * progress;
       const y = i * stripeHeight;
-
       pctx.fillRect(0, y, w, stripeHeight);
     }
 
@@ -1155,13 +889,10 @@ function startPixelTransition(onDone) {
       pixelCanvas.style.display = "none";
     }
   }
-
   requestAnimationFrame(animate);
 }
 
-// -------------------------------------
 // Main loop
-// -------------------------------------
 function update(timestamp) {
   drawSolidBackground();
 
@@ -1170,79 +901,17 @@ function update(timestamp) {
   if (dt > 0.05) dt = 0.05;
   lastFrameTime = timestamp;
 
-  // gamepad state for menus
-  let gpLeft = false, gpRight = false, gpA = false, gpStart = false;
-  if (navigator.getGamepads) {
-    const gp = navigator.getGamepads()?.[0];
-    if (gp) {
-      gpLeft = !!gp.buttons[14]?.pressed;
-      gpRight = !!gp.buttons[15]?.pressed;
-
-      const axis = gp.axes[0] || 0;
-      if (axis < -0.3) gpLeft = true;
-      if (axis > 0.3) gpRight = true;
-
-      gpA = !!gp.buttons[1]?.pressed;
-      gpStart = !!gp.buttons[9]?.pressed;
-    }
-  }
-
-  // Start menu gamepad handling (kept like original)
-  if (!gameStarted && !gameOver && !transitioningToGame) {
-    if (gpLeft && !padLeftPrev) {
-      if (menuLevel === 0) selectedModeIndex = (selectedModeIndex - 1 + modeButtons.length) % modeButtons.length;
-      else selectedCharIndex = (selectedCharIndex - 1 + charButtons.length) % charButtons.length;
-      updateMenuSelection();
-      playStepSfx();
-      playMenuMusic();
-    }
-
-    if (gpRight && !padRightPrev) {
-      if (menuLevel === 0) selectedModeIndex = (selectedModeIndex + 1) % modeButtons.length;
-      else selectedCharIndex = (selectedCharIndex + 1) % charButtons.length;
-      updateMenuSelection();
-      playStepSfx();
-      playMenuMusic();
-    }
-
-    if (gpA && !padAPrev) {
-      playClickSfx();
-      if (menuLevel === 0) {
-        if (selectedModeIndex === 0) enterSinglePlayerCharacterSelect();
-        else startTwoPlayer();
-      } else {
-        if (selectedCharIndex === 0) startSinglePlayer("skier");
-        else startSinglePlayer("snowboarder");
-      }
-    }
-
-    padLeftPrev = gpLeft;
-    padRightPrev = gpRight;
-    padAPrev = gpA;
-    padStartPrev = gpStart;
-
-    requestAnimationFrame(update);
-    return;
-  }
-
   if (!startTime && gameStarted) startTime = timestamp;
-
   if (runEnded) currentTimeSec = freezeTimeSec;
   else if (!paused && gameStarted) currentTimeSec = (timestamp - startTime - pausedAccum) / 1000;
 
-  // Intro slide-in
   if (introSliding) {
     const elapsed = timestamp - introSlideStart;
     const t = Math.min(elapsed / introSlideDuration, 1);
     const eased = easeOutBack(t);
-
     const startY = -150;
     const targetY = getTargetY();
-
-    activePlayers.forEach(p => {
-      p.y = startY + (targetY - startY) * eased;
-    });
-
+    activePlayers.forEach(p => { p.y = startY + (targetY - startY) * eased; });
     if (t >= 1) {
       introSliding = false;
       activePlayers.forEach(p => { p.y = targetY; });
@@ -1250,51 +919,22 @@ function update(timestamp) {
   }
 
   if (gameStarted && !gameOver) {
-    // Movement
     if (!runEnded && !paused) {
-      if (mode === "1P") {
-        const p = activePlayers[0];
-        if (p && !p.crashed) {
-          let dir = 0;
+      const p = activePlayers[0];
+      if (p && !p.crashed) {
+        let dir = smallScreen ? touchDir : ((keys["ArrowLeft"] ? -1 : 0) + (keys["ArrowRight"] ? 1 : 0));
+        if (dir > 0) p.facingRight = true;
+        else if (dir < 0) p.facingRight = false;
 
-          if (smallScreen) {
-            dir = touchDir;
-          } else {
-            dir = getGamepadMovement();
-            if (dir === null) {
-              dir = (keys["ArrowLeft"] ? -1 : 0) + (keys["ArrowRight"] ? 1 : 0);
-            }
-          }
-
-          if (dir > 0) p.facingRight = true;
-          else if (dir < 0) p.facingRight = false;
-
-          const speed = (p === skier) ? getSkiSpeed() : getSnowboardSpeed();
-          p.x = Math.max(40, Math.min(canvas.width - 40, p.x + dir * speed * dt));
-        }
-      } else if (mode === "2P") {
-        if (!snowboarder.crashed && activePlayers.includes(snowboarder)) {
-          let dirSnow = getGamepadMovement();
-          if (dirSnow === null) dirSnow = (keys["ArrowLeft"] ? -1 : 0) + (keys["ArrowRight"] ? 1 : 0);
-          if (dirSnow > 0) snowboarder.facingRight = true;
-          else if (dirSnow < 0) snowboarder.facingRight = false;
-          snowboarder.x = Math.max(40, Math.min(canvas.width - 40, snowboarder.x + dirSnow * getSnowboardSpeed() * dt));
-        }
-        if (!skier.crashed && activePlayers.includes(skier)) {
-          let dirSki = (keys["KeyA"] ? -1 : 0) + (keys["KeyD"] ? 1 : 0);
-          if (dirSki > 0) skier.facingRight = true;
-          else if (dirSki < 0) skier.facingRight = false;
-          skier.x = Math.max(40, Math.min(canvas.width - 40, skier.x + dirSki * getSkiSpeed() * dt));
-        }
+        const speed = (p === skier) ? getSkiSpeed() : getSnowboardSpeed();
+        p.x = Math.max(40, Math.min(canvas.width - 40, p.x + dir * speed * dt));
       }
     }
 
-    // Updates
     if (!paused) {
       activePlayers.forEach(spawnSnowDustForPlayer);
       updateSnowDust(dt);
 
-      // Spawn curve (mobile + desktop)
       if (!runEnded) {
         const baseSpawn = smallScreen ? MOBILE_SPAWN_BASE : DESKTOP_SPAWN_BASE;
         const rampSpawn = smallScreen ? MOBILE_SPAWN_RAMP : DESKTOP_SPAWN_RAMP;
@@ -1318,7 +958,6 @@ function update(timestamp) {
       });
     }
 
-    // Draw
     drawSnowDust();
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -1339,7 +978,6 @@ function update(timestamp) {
       }
     });
 
-    // Collisions
     if (!runEnded && !paused) {
       obstacles.forEach(o => {
         activePlayers.forEach(p => {
@@ -1347,20 +985,10 @@ function update(timestamp) {
           if (collided(p, o)) {
             p.crashed = true;
             p.emoji = "💥";
-            p.crashMeters = currentTimeSec * 10;
             playExplosion();
-
-            if (mode === "1P") {
-              runEnded = true;
-              freezeTimeSec = currentTimeSec;
-              pendingGameOverTime = timestamp + 1000;
-            } else if (mode === "2P") {
-              if (skier.crashed && snowboarder.crashed) {
-                runEnded = true;
-                freezeTimeSec = currentTimeSec;
-                pendingGameOverTime = timestamp + 1000;
-              }
-            }
+            runEnded = true;
+            freezeTimeSec = currentTimeSec;
+            pendingGameOverTime = timestamp + 1000;
           }
         });
       });
@@ -1368,16 +996,9 @@ function update(timestamp) {
 
     if (runEnded && !gameOver && timestamp >= pendingGameOverTime) endGame();
 
-    const timeForHud = runEnded ? freezeTimeSec : currentTimeSec;
-    const metersNow = timeForHud * 10;
+    const metersNow = (runEnded ? freezeTimeSec : currentTimeSec) * 10;
     hudDistanceEl.textContent = `DISTANCE: ${metersNow.toFixed(0)}m`;
-    hudBestEl.textContent = `BEST: ${(bestTime * 10).toFixed(0)}m`;
   }
-
-  padLeftPrev = gpLeft;
-  padRightPrev = gpRight;
-  padAPrev = gpA;
-  padStartPrev = gpStart;
 
   requestAnimationFrame(update);
 }
