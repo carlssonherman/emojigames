@@ -85,12 +85,7 @@
       flex-direction: column;
       align-items: center;
       gap: 14px;
-      transition: transform 0.15s ease;
       cursor: pointer;
-    }
-
-    .app:hover {
-      transform: scale(1.05);
     }
 
     .app-icon {
@@ -99,10 +94,17 @@
       border-radius: 28px;
       image-rendering: pixelated;
       background-color: #000;
+      transition: transform 0.15s ease;
+    }
+
+    /* ✅ Only scale the icon, not the text */
+    .app:hover .app-icon {
+      transform: scale(1.05);
     }
 
     .app-label {
       font-size: 16px;
+      line-height: 1;
     }
 
     /* Mobile tweaks */
@@ -131,15 +133,18 @@
     />
 
     <div class="menu">
+
+    <a href="/emojidownhill" class="app" data-link="/emojidownhill">
+        <img src="emoji-downhill.png" alt="Emoji Downhill" class="app-icon" />
+        <div class="app-label">EMOJI DOWNHILL</div>
+      </a>
+
       <a href="/emojihunter" class="app" data-link="/emojihunter">
         <img src="emoji-hunter.png" alt="Emoji Hunter" class="app-icon" />
         <div class="app-label">EMOJI HUNTER</div>
       </a>
 
-      <a href="/emojidownhill" class="app" data-link="/emojidownhill">
-        <img src="emoji-downhill.png" alt="Emoji Downhill" class="app-icon" />
-        <div class="app-label">EMOJI DOWNHILL</div>
-      </a>
+  
     </div>
   </div>
 
@@ -153,11 +158,4 @@
         clickSound.play();
 
         const link = app.getAttribute("data-link");
-        setTimeout(() => {
-          window.location.href = link;
-        }, 150);
-      });
-    });
-  </script>
-</body>
-</html>
+        setTimeout(
