@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Emoji Games</title>
 
-  <!-- IMPORTANT: mobile viewport fix -->
+  <!-- Mobile viewport fix -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Google Font: Silkscreen -->
@@ -51,24 +51,42 @@
       position: relative;
       text-align: center;
       z-index: 1;
+      width: 100%;
       padding: 24px;
     }
 
     .logo {
       max-width: 800px;
       width: 90%;
-      margin-bottom: 48px;
+      margin: 0 auto 40px;
       image-rendering: pixelated;
+      display: block;
     }
 
+    /* HORIZONTAL LAUNCHER */
     .menu {
       display: flex;
+      flex-direction: row;
       gap: 48px;
-      justify-content: center;
-      flex-wrap: wrap;
+      justify-content: flex-start;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 8px 24px 16px;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+      white-space: nowrap;
+    }
+
+    /* Hide scrollbar (cross-browser) */
+    .menu::-webkit-scrollbar {
+      display: none;
+    }
+    .menu {
+      scrollbar-width: none; /* Firefox */
     }
 
     .app {
+      flex: 0 0 auto;
       text-decoration: none;
       color: #ffffff;
       display: flex;
@@ -92,18 +110,11 @@
 
     .app-label {
       font-size: 16px;
+      white-space: nowrap;
     }
 
-    /* 📱 Mobile-only adjustments */
+    /* 📱 Mobile boost */
     @media (max-width: 600px) {
-      .logo {
-        margin-bottom: 32px;
-      }
-
-      .menu {
-        gap: 32px;
-      }
-
       .app-icon {
         width: 200px;
         height: 200px;
@@ -111,6 +122,11 @@
 
       .app-label {
         font-size: 18px;
+      }
+
+      .menu {
+        gap: 32px;
+        padding-bottom: 24px;
       }
     }
   </style>
@@ -141,6 +157,8 @@
         />
         <div class="app-label">EMOJI DOWNHILL</div>
       </a>
+
+      <!-- Add more apps here later -->
     </div>
   </div>
 </body>
