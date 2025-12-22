@@ -130,7 +130,7 @@
 
     .menu {
       display: flex;
-      justify-content: center;
+      justify-content: center; /* centered on desktop */
       gap: 48px;
     }
 
@@ -142,6 +142,7 @@
       align-items: center;
       gap: 14px;
       cursor: pointer;
+      flex: 0 0 auto;
     }
 
     .app-icon-wrap {
@@ -150,6 +151,7 @@
       border-radius: 28px;
       display: grid;
       place-items: center;
+      overflow: visible;
     }
 
     .app-icon {
@@ -159,6 +161,7 @@
       image-rendering: pixelated;
       background-color: #000;
       transition: transform 0.15s ease;
+      display: block;
     }
 
     .app:hover .app-icon {
@@ -170,12 +173,27 @@
       white-space: nowrap;
     }
 
+    /* ---------- Mobile horizontal scroll: FULL WIDTH, no side padding ---------- */
     @media (max-width: 700px) {
+      .container {
+        padding-left: 0;
+        padding-right: 0;
+      }
+
       .menu {
         justify-content: flex-start;
         gap: 24px;
+
         overflow-x: auto;
-        padding: 16px;
+        -webkit-overflow-scrolling: touch;
+
+        padding-top: 16px;
+        padding-bottom: 16px;
+        padding-left: 0;
+        padding-right: 0;
+
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
       }
 
       .menu::-webkit-scrollbar { display: none; }
@@ -200,6 +218,7 @@
     </div>
 
     <div class="menu">
+      <!-- ORDER: DOWNHILL → HUNTER -->
       <a href="/emojidownhill" class="app" data-link="/emojidownhill">
         <div class="app-icon-wrap">
           <img src="emoji-downhill.png" alt="Emoji Downhill" class="app-icon" />
@@ -217,6 +236,7 @@
   </div>
 
   <script>
+    // Falling stars (random spawn, diagonal drift)
     const colors = ["#ff4d4d", "#4dfff3", "#ffe44d", "#c44dff"];
     const layer = document.getElementById("fallingLayer");
     const stars = [];
@@ -229,10 +249,9 @@
     function spawnStar(star) {
       star.x = rand(0, window.innerWidth);
       star.y = rand(-window.innerHeight, 0);
-      star.speedX = rand(0.3, 0.7);
-      star.speedY = rand(0.7, 1.4);
-      star.el.style.backgroundColor =
-        colors[Math.floor(Math.random() * colors.length)];
+      star.speedX = rand(0.3, 0.7);  // diagonal: left->right
+      star.speedY = rand(0.7, 1.4);  // falling speed
+      star.el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
     }
 
     for (let i = 0; i < STAR_COUNT; i++) {
@@ -254,23 +273,28 @@
           spawnStar(star);
         }
 
-        star.el.style.transform =
-          `translate(${star.x}px, ${star.y}px)`;
+        star.el.style.transform = `translate(${star.x}px, ${star.y}px)`;
       }
       requestAnimationFrame(update);
     }
-
     update();
 
-    // Click sound
+    // Click sound + navigation
     const clickSound = document.getElementById("clickSound");
     document.querySelectorAll(".app").forEach(app => {
       app.addEventListener("click", e => {
         e.preventDefault();
         clickSound.currentTime = 0;
         clickSound.play();
-        setTimeout(() => location.href = app.dataset.link, 150);
+        setTimeout(() => {
+          location.href = app.dataset.link;
+        }, 150);
       });
+    });
+
+    // Keep stars responsive on resize/orientation change
+    window.addEventListener("resize", () => {
+      // nothing heavy needed; new spawns use new bounds automatically
     });
   </script>
 </body>
