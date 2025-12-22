@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <title>Emoji Games</title>
 
+  <!-- IMPORTANT: mobile viewport fix -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <!-- Google Font: Silkscreen -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,7 +20,7 @@
 
     body {
       margin: 0;
-      height: 100vh;
+      min-height: 100vh;
       background-color: #050510;
       color: #ffffff;
       display: flex;
@@ -48,11 +51,12 @@
       position: relative;
       text-align: center;
       z-index: 1;
+      padding: 24px;
     }
 
     .logo {
-      max-width: 600px;
-      width: 80%;
+      max-width: 800px;
+      width: 90%;
       margin-bottom: 48px;
       image-rendering: pixelated;
     }
@@ -61,6 +65,7 @@
       display: flex;
       gap: 48px;
       justify-content: center;
+      flex-wrap: wrap;
     }
 
     .app {
@@ -71,7 +76,6 @@
       align-items: center;
       gap: 14px;
       transition: transform 0.15s ease;
-      cursor: pointer;
     }
 
     .app:hover {
@@ -89,13 +93,29 @@
     .app-label {
       font-size: 16px;
     }
+
+    /* 📱 Mobile-only adjustments */
+    @media (max-width: 600px) {
+      .logo {
+        margin-bottom: 32px;
+      }
+
+      .menu {
+        gap: 32px;
+      }
+
+      .app-icon {
+        width: 200px;
+        height: 200px;
+      }
+
+      .app-label {
+        font-size: 18px;
+      }
+    }
   </style>
 </head>
 <body>
-
-  <!-- Click sound -->
-  <audio id="clickSound" src="click.mp3" preload="auto"></audio>
-
   <div class="container">
     <img
       src="emoji-games-start.png"
@@ -104,7 +124,7 @@
     />
 
     <div class="menu">
-      <a href="/emojihunter" class="app" data-link="/emojihunter">
+      <a href="/emojihunter" class="app">
         <img
           src="emoji-hunter.png"
           alt="Emoji Hunter"
@@ -113,7 +133,7 @@
         <div class="app-label">EMOJI HUNTER</div>
       </a>
 
-      <a href="/emojidownhill" class="app" data-link="/emojidownhill">
+      <a href="/emojidownhill" class="app">
         <img
           src="emoji-downhill.png"
           alt="Emoji Downhill"
@@ -123,26 +143,5 @@
       </a>
     </div>
   </div>
-
-  <script>
-    const clickSound = document.getElementById("clickSound");
-
-    document.querySelectorAll(".app").forEach(app => {
-      app.addEventListener("click", event => {
-        event.preventDefault();
-
-        // Restart sound if clicked quickly
-        clickSound.currentTime = 0;
-        clickSound.play();
-
-        const link = app.getAttribute("data-link");
-
-        // Small delay so sound plays before navigation
-        setTimeout(() => {
-          window.location.href = link;
-        }, 150);
-      });
-    });
-  </script>
 </body>
 </html>
