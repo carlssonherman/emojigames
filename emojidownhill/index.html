@@ -1,540 +1,1413 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Ski Downhill</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Emoji Downhill</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
 
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      background: #fff;
-      touch-action: none;
-      font-family: "Silkscreen", monospace;
-    }
-    #wrap { position: fixed; inset: 0; background: #fff; }
-    canvas { display: block; width: 100vw; height: 100vh; background: #fff; }
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    height: 100%;
+    background: #8abfff;
+    font-family: 'Silkscreen', monospace;
+  }
 
-    .overlay {
-      position: absolute;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
+  /* Avoid text selection / tap highlights (mobile especially) */
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Prevent scrolling/zoom gestures interfering with gameplay */
+  html, body, canvas { touch-action: none; }
+
+  /* Pixel transition overlay */
+  #pixel-transition {
+    position: fixed;
+    inset: 0;
+    z-index: 19;
+    display: none;
+    image-rendering: pixelated;
+    pointer-events: none;
+  }
+
+  /* Start Screen Overlay – starry night */
+  #start-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 15;
+    color: #f5fbff;
+    background: radial-gradient(circle at top, #283a63 0%, #050818 55%, #02030a 100%);
+    overflow: hidden;
+  }
+
+  /* GAME OVER (same style as start) */
+  #game-over {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    color: #f5fbff;
+    background: radial-gradient(circle at top, #283a63 0%, #050818 55%, #02030a 100%);
+    overflow: hidden;
+  }
+  #game-over.visible { display: flex; }
+
+  /* starfield layers */
+  #start-screen::before,
+  #start-screen::after,
+  #game-over::before,
+  #game-over::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 2px;
+    height: 2px;
+    background: #ffffff;
+    image-rendering: pixelated;
+    z-index: 0;
+  }
+
+  #start-screen::before,
+  #game-over::before {
+    opacity: 0.7;
+    box-shadow:
+      20vw 10vh 0 0 #ffffff,
+      40vw 15vh 0 0 #ffffff,
+      70vw 8vh 0 0 #ffffff,
+      15vw 30vh 0 0 #ffffff,
+      55vw 28vh 0 0 #ffffff,
+      80vw 24vh 0 0 #ffffff,
+      10vw 50vh 0 0 #ffffff,
+      35vw 45vh 0 0 #ffffff,
+      65vw 52vh 0 0 #ffffff,
+      85vw 38vh 0 0 #ffffff,
+      25vw 70vh 0 0 #ffffff,
+      50vw 65vh 0 0 #ffffff,
+      75vw 72vh 0 0 #ffffff,
+      15vw 85vh 0 0 #ffffff,
+      60vw 88vh 0 0 #ffffff;
+    animation: twinkle 4.5s infinite alternate;
+  }
+
+  #start-screen::after,
+  #game-over::after {
+    opacity: 0.9;
+    box-shadow:
+      8vw  18vh 0 0 #ffffff,
+      28vw 12vh 0 0 #ffffff,
+      52vw 20vh 0 0 #ffffff,
+      78vw 16vh 0 0 #ffffff,
+      18vw 40vh 0 0 #ffffff,
+      42vw 36vh 0 0 #ffffff,
+      68vw 32vh 0 0 #ffffff,
+      90vw 44vh 0 0 #ffffff,
+      5vw  60vh 0 0 #ffffff,
+      32vw 58vh 0 0 #ffffff,
+      58vw 62vh 0 0 #ffffff,
+      82vw 68vh 0 0 #ffffff,
+      22vw 80vh 0 0 #ffffff,
+      48vw 82vh 0 0 #ffffff,
+      72vw 86vh 0 0 #ffffff;
+    animation: twinkle 3.2s infinite alternate;
+  }
+
+  /* Mountain band */
+  .mountain-band {
+    position: absolute;
+    bottom: -20px;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-size: 140px;
+    line-height: 1;
+    pointer-events: none;
+    z-index: 1;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  #start-inner,
+  #game-over-inner {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    padding: 24px 32px;
+  }
+
+  /* Responsive logo */
+  .ice-title {
+    position: relative;
+    display: inline-block;
+    text-transform: uppercase;
+    font-size: clamp(44px, 8vw, 90px);
+    line-height: 0.92;
+    letter-spacing: clamp(2px, 0.7vw, 6px);
+    padding: 10px 20px;
+
+    background-image: linear-gradient(
+      180deg,
+      #ffffff 0%,
+      #e9f7ff 35%,
+      #c8e7ff 60%,
+      #7eb8e6 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+
+    text-shadow:
+      0 4px 0 #4b6d8c,
+      0 6px 10px rgba(0, 0, 0, 0.7);
+  }
+
+  .ice-line { display: block; }
+
+  .ice-title .pix {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: #fff;
+    image-rendering: pixelated;
+    box-shadow:
+      0 -3px 0 rgba(255,255,255,0.9),
+      0  3px 0 rgba(255,255,255,0.9),
+      -3px 0 0 rgba(255,255,255,0.9),
+      3px 0 0 rgba(255,255,255,0.9);
+    opacity: 0.8;
+    animation: twinkle 1.2s infinite alternate;
+  }
+
+  .pix-1 { top: 18%; left: 18%; }
+  .pix-2 { top: 12%; left: 62%; }
+  .pix-3 { top: 34%; left: 30%; }
+  .pix-4 { top: 48%; left: 74%; }
+  .pix-5 { top: 70%; left: 42%; }
+  .pix-6 { top: 62%; left: 12%; }
+  .pix-7 { top: 20%; left: 82%; }
+
+  @keyframes twinkle {
+    0%   { transform: scale(1); opacity: 0.4; }
+    100% { transform: scale(1.3); opacity: 1; }
+  }
+
+  .mode-buttons {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+  }
+
+  .mode-btn {
+    padding: 16px 28px;
+    border-radius: 20px;
+    border: 2px solid #f5fbff;
+    background: #ffffff10;
+    color: #f5fbff;
+    cursor: pointer;
+    min-width: 220px;
+    font-family: 'Silkscreen', monospace;
+    font-size: 18px;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s;
+    backdrop-filter: blur(4px);
+  }
+
+  .mode-btn span.big {
+    display: block;
+    font-size: 32px;
+    margin-bottom: 6px;
+  }
+
+  .mode-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 0 #00000066;
+    background: #ffffff22;
+  }
+
+  .mode-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 0 #00000066;
+  }
+
+  .mode-btn.selected {
+    background: #ffffff33;
+    box-shadow: 0 6px 0 #00000099;
+    transform: translateY(-3px);
+  }
+
+  /* Bottom legend */
+  #legend {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.9);
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 14px;
+    z-index: 5;
+  }
+
+  /* HUD pills */
+  #hud-distance-bar,
+  #hud-best-bar {
+    position: fixed;
+    top: 10px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 14px;
+    z-index: 5;
+    white-space: nowrap;
+  }
+
+  #hud-distance-bar { left: 10px; }
+  #hud-best-bar    { right: 10px; }
+
+  .go-legend-text {
+    font-size: 18px;
+    color: #f5fbff;
+    margin-top: 12px;
+    margin-bottom: 24px;
+  }
+
+  #restart-btn { margin-top: 20px; }
+
+  /* Pause */
+  #pause-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 18;
+    background: rgba(0,0,0,0.90);
+    color: #f5fbff;
+    pointer-events: none;
+  }
+  #pause-overlay.visible { display: flex; }
+
+  /* Mobile: stack buttons + hide gameplay legend + hide mountains */
+  @media (max-width: 700px), (pointer: coarse) {
+    #start-inner, #game-over-inner { padding: 18px 16px; }
+    .ice-title { padding: 6px 10px; }
+
+    .mode-buttons {
       flex-direction: column;
+      align-items: center;
       gap: 14px;
-      padding: 18px;
-      box-sizing: border-box;
-      color: #111;
-      text-align: center;
     }
-    .overlay.show { display: flex; }
 
-    .btn {
-      font-family: "Silkscreen", monospace;
+    .mode-btn {
+      min-width: 0;
+      width: min(92vw, 360px);
+      padding: 14px 18px;
+      border-radius: 18px;
       font-size: 16px;
-      padding: 12px 16px;
-      border: 3px solid #111;
-      background: #fff;
-      cursor: pointer;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .btn:active { transform: translateY(1px); }
-
-    .title {
-      font-size: 18px;
-      font-weight: 700;
-      background: rgba(255,255,255,0.90);
-      padding: 8px 10px;
-      border: 3px solid #111;
     }
 
-    .players {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: center;
-    }
-    .playerCard {
-      border: 3px solid #111;
-      padding: 10px;
-      background: rgba(255,255,255,0.92);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      min-width: 120px;
-    }
-    .playerCard img {
-      width: 64px;
-      height: 64px;
-      object-fit: contain;
-      image-rendering: pixelated;
-    }
+    .mode-btn span.big { font-size: 26px; }
 
-    .hint {
-      font-size: 12px;
-      background: rgba(255,255,255,0.90);
-      padding: 8px 10px;
-      border: 3px solid #111;
-      max-width: 560px;
-      line-height: 1.35;
-    }
-  </style>
+    /* remove control description in gameplay */
+    #legend { display: none; }
+
+    /* remove mountains on mobile */
+    .mountain-band { display: none; }
+  }
+</style>
 </head>
 
 <body>
-  <div id="wrap">
-    <canvas id="game"></canvas>
+<canvas id="game"></canvas>
+<canvas id="pixel-transition"></canvas>
 
-    <!-- Background music -->
-    <audio id="bgm" loop preload="auto">
-      <source src="music.mp3" type="audio/mpeg">
-    </audio>
+<!-- HUD -->
+<div id="hud-distance-bar"><span id="hud-distance">DISTANCE: 0m</span></div>
+<div id="hud-best-bar"><span id="hud-best">BEST: 0m</span></div>
 
-    <!-- START overlay -->
-    <div id="startOverlay" class="overlay show">
-      <div class="title">Ski Downhill</div>
-      <button id="startBtn" class="btn">START</button>
-      <div class="hint">
-        Mobile: press/hold left or right side<br>
-        Desktop: Arrow keys / A-D
-      </div>
+<!-- Menu music -->
+<audio id="bg-menu" loop>
+  <source src="pixelate-pixelated-dreams-313358.mp3" type="audio/mpeg">
+</audio>
+
+<!-- Gameplay music -->
+<audio id="bg-music-1" class="bg-music" loop><source src="music-1.mp3" type="audio/mpeg"></audio>
+<audio id="bg-music-2" class="bg-music" loop><source src="music-2.mp3" type="audio/mpeg"></audio>
+<audio id="bg-music-3" class="bg-music" loop><source src="music-3.mp3" type="audio/mpeg"></audio>
+
+<!-- SFX -->
+<audio id="sfx-explosion"><source src="8-bit-explosion-3-340456.mp3" type="audio/mpeg"></audio>
+<audio id="sfx-pause"><source src="pause.mp3" type="audio/mpeg"></audio>
+<audio id="sfx-step"><source src="step.mp3" type="audio/mpeg"></audio>
+<audio id="sfx-click"><source src="click.mp3" type="audio/mpeg"></audio>
+
+<!-- Start screen -->
+<div id="start-screen">
+  <div class="mountain-band">🗻🗻🗻🗻🗻🗻🗻🗻🗻🗻🗻🗻</div>
+
+  <div id="start-inner">
+    <h1 class="ice-title">
+      <span class="ice-line">MOUNT EMOJI</span>
+      <span class="ice-line">DOWNHILL</span>
+      <span class="pix pix-1"></span><span class="pix pix-2"></span><span class="pix pix-3"></span>
+      <span class="pix pix-4"></span><span class="pix pix-5"></span><span class="pix pix-6"></span><span class="pix pix-7"></span>
+    </h1>
+
+    <!-- STEP 1: MODE SELECT -->
+    <div id="mode-select" class="mode-buttons">
+      <button id="btn-1p" class="mode-btn"><span class="big">SINGLE RIDER</span></button>
+      <button id="btn-2p" class="mode-btn"><span class="big">RIDER VS RIDER</span></button>
     </div>
 
-    <!-- SELECT overlay -->
-    <div id="selectOverlay" class="overlay">
-      <div class="title">Choose Player</div>
-      <div class="players">
-        <div class="playerCard">
-          <img src="isak.png" alt="Isak">
-          <button class="btn pick" data-player="isak">ISAK</button>
-        </div>
-        <div class="playerCard">
-          <img src="assar.png" alt="Assar">
-          <button class="btn pick" data-player="assar">ASSAR</button>
-        </div>
-        <div class="playerCard">
-          <img src="eli.png" alt="Eli">
-          <button class="btn pick" data-player="eli">ELI</button>
-        </div>
-      </div>
-      <div class="hint">Spruces spawn in clusters (same logic as your Emoji Downhill).</div>
+    <!-- STEP 2: CHARACTER SELECT -->
+    <div id="char-select" class="mode-buttons" style="display:none;">
+      <button id="btn-char-snowboarder" class="mode-btn"><span class="big">🏂 SNOWBOARDER</span></button>
+      <button id="btn-char-skier" class="mode-btn"><span class="big">⛷️ SKIER</span></button>
     </div>
 
-    <!-- GAME OVER overlay -->
-    <div id="overOverlay" class="overlay">
-      <div class="title">CRASHED!</div>
-      <div class="hint" id="overStats"></div>
-      <button id="retryBtn" class="btn">RETRY</button>
-      <button id="backBtn" class="btn">BACK TO MENU</button>
-    </div>
+    <br><br>
+    <p id="start-legend">PLAYER 1: Arrow keys &nbsp;|&nbsp; PLAYER 2: A / D</p>
+
+    <br><br><br>
+    <p>© emoji games</p>
   </div>
+</div>
 
-  <script>
-    (() => {
-      /* ================= ASSETS ================= */
-      function loadImage(src) {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => resolve(img);
-          img.onerror = () => reject(new Error("Failed to load " + src));
-          img.src = src;
-        });
+<!-- Bottom legend (hidden on mobile by CSS) -->
+<div id="legend">Player 1: Arrow keys &nbsp;|&nbsp; Player 2: A / D</div>
+
+<!-- Game over -->
+<div id="game-over">
+  <div class="mountain-band">🗻🗻🗻🗻🗻🗻🗻🗻🗻🗻🗻🗻</div>
+
+  <div id="game-over-inner">
+    <h1 class="ice-title">
+      <span class="ice-line">GAME</span>
+      <span class="ice-line">OVER</span>
+      <span class="pix pix-1"></span><span class="pix pix-2"></span><span class="pix pix-3"></span>
+      <span class="pix pix-4"></span><span class="pix pix-5"></span><span class="pix pix-6"></span><span class="pix pix-7"></span>
+    </h1>
+
+    <p id="result-text" class="go-legend-text">you made it 0 meters</p>
+
+    <button id="restart-btn" class="mode-btn">
+      <span class="big">↻ GET BACK UP</span>
+    </button>
+  </div>
+</div>
+
+<!-- Pause -->
+<div id="pause-overlay">
+  <div id="pause-inner">
+    <h1 class="ice-title">
+      <span class="ice-line">PAUSED</span>
+      <span class="pix pix-1"></span><span class="pix pix-2"></span><span class="pix pix-3"></span>
+      <span class="pix pix-4"></span><span class="pix pix-5"></span><span class="pix pix-6"></span><span class="pix pix-7"></span>
+    </h1>
+    <p class="go-legend-text">press any key to continue</p>
+  </div>
+</div>
+
+<script>
+// -------------------------------------
+// Canvas Setup
+// -------------------------------------
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const pixelCanvas = document.getElementById("pixel-transition");
+const pctx = pixelCanvas.getContext("2d");
+
+// Prevent selection/long-press/drag
+canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+canvas.addEventListener("dragstart", (e) => e.preventDefault());
+canvas.addEventListener("selectstart", (e) => e.preventDefault());
+document.addEventListener("touchmove", (e) => {
+  if (e.target === canvas) e.preventDefault();
+}, { passive: false });
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  pixelCanvas.width = window.innerWidth;
+  pixelCanvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+function drawSolidBackground() {
+  ctx.fillStyle = "#D9E5F4";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+// -------------------------------------
+// Mobile detection
+// -------------------------------------
+function isMobileUI() {
+  return window.matchMedia("(max-width: 700px), (pointer: coarse)").matches;
+}
+let isMobile = isMobileUI();
+
+// -------------------------------------
+// TUNING
+// -------------------------------------
+// Speeds (lowered on mobile + trees + crash slide)
+const SKI_SPEED_DESKTOP = 480;
+const SNOWBOARD_SPEED_DESKTOP = 480;
+
+const SKI_SPEED_MOBILE = 420;
+const SNOWBOARD_SPEED_MOBILE = 420;
+
+const TREE_SPEED_DESKTOP = 720;
+const TREE_SPEED_MOBILE  = 620;
+
+const CRASH_SLIDE_SPEED_DESKTOP = 720;
+const CRASH_SLIDE_SPEED_MOBILE  = 620;
+
+function skiSpeed()       { return isMobile ? SKI_SPEED_MOBILE : SKI_SPEED_DESKTOP; }
+function snowboardSpeed() { return isMobile ? SNOWBOARD_SPEED_MOBILE : SNOWBOARD_SPEED_DESKTOP; }
+function treeSpeed()      { return isMobile ? TREE_SPEED_MOBILE : TREE_SPEED_DESKTOP; }
+function crashSlideSpeed(){ return isMobile ? CRASH_SLIDE_SPEED_MOBILE : CRASH_SLIDE_SPEED_DESKTOP; }
+
+// Player vertical target (higher on mobile)
+const TARGET_Y_DESKTOP = 200;
+const TARGET_Y_MOBILE  = 150;
+function targetY() { return isMobile ? TARGET_Y_MOBILE : TARGET_Y_DESKTOP; }
+
+// Trees per cluster + spawn curve
+// Desktop: original-ish
+const DESKTOP_CLUSTER_BASE = 3;
+const DESKTOP_CLUSTER_EXTRA_CAP = 7;
+const DESKTOP_CLUSTER_RAND_MAX = 1;
+
+// Mobile: ALWAYS 1 tree per cluster
+const MOBILE_CLUSTER_BASE = 1;
+const MOBILE_CLUSTER_EXTRA_CAP = 0;
+const MOBILE_CLUSTER_RAND_MAX = 0;
+
+// Spawn curve (mobile ramps by frequency; set MOBILE_SPAWN_RAMP=0 for totally steady)
+const DESKTOP_SPAWN_BASE = 0.03;
+const DESKTOP_SPAWN_RAMP = 0.003;
+const DESKTOP_SPAWN_CAP  = 0.35;
+
+const MOBILE_SPAWN_BASE = 0.022;
+const MOBILE_SPAWN_RAMP = 0.0022;
+const MOBILE_SPAWN_CAP  = 0.26;
+
+// -------------------------------------
+// Players & Game State
+// -------------------------------------
+const skier = {
+  id: "P2",
+  label: "Skier",
+  baseEmoji: "⛷️",
+  emoji: "⛷️",
+  x: canvas.width / 2 - 80,
+  y: targetY(),
+  size: 60,
+  lastX: null,
+  crashed: false,
+  crashMeters: 0,
+  facingRight: false
+};
+
+const snowboarder = {
+  id: "P1",
+  label: "Snowboarder",
+  baseEmoji: "🏂",
+  emoji: "🏂",
+  x: canvas.width / 2 + 80,
+  y: targetY(),
+  size: 60,
+  lastX: null,
+  crashed: false,
+  crashMeters: 0,
+  facingRight: false
+};
+
+let activePlayers = [];
+let mode = null; // "1P" | "2P"
+let singlePlayerCharacter = "snowboarder";
+let gameStarted = false;
+
+let obstacles = [];
+let startTime = null;
+let currentTimeSec = 0;
+let gameOver = false;
+
+let bestTime = 0;
+let bestKey = "";
+
+let snowParticles = [];
+
+// Delayed game-over
+let runEnded = false;
+let freezeTimeSec = 0;
+let pendingGameOverTime = 0;
+
+// Intro slide-in
+let introSliding = false;
+let introSlideStart = 0;
+const introSlideDuration = 800;
+
+// Pause
+let paused = false;
+let pausedAt = 0;
+let pausedAccum = 0;
+
+// Frame timing
+let lastFrameTime = null;
+
+// Spawn timing
+let spawnTimer = 0;
+
+// Transition flag
+let transitioningToGame = false;
+
+// -------------------------------------
+// UI Elements
+// -------------------------------------
+const startScreen = document.getElementById("start-screen");
+const btn1P = document.getElementById("btn-1p");
+const btn2P = document.getElementById("btn-2p");
+const restartBtn = document.getElementById("restart-btn");
+const hudDistanceEl = document.getElementById("hud-distance");
+const hudBestEl = document.getElementById("hud-best");
+const gameOverOverlay = document.getElementById("game-over");
+const resultTextEl = document.getElementById("result-text");
+const pauseOverlay = document.getElementById("pause-overlay");
+
+const modeSelectRow = document.getElementById("mode-select");
+const charSelectRow = document.getElementById("char-select");
+const btnCharSkier = document.getElementById("btn-char-skier");
+const btnCharSnowboarder = document.getElementById("btn-char-snowboarder");
+const startLegendEl = document.getElementById("start-legend");
+
+// -------------------------------------
+// Audio
+// -------------------------------------
+const menuMusicEl = document.getElementById("bg-menu");
+function playMenuMusic() {
+  if (!menuMusicEl) return;
+  menuMusicEl.volume = 0.4;
+  if (menuMusicEl.paused) menuMusicEl.play().catch(() => {});
+}
+function pauseMenuMusic() { if (menuMusicEl) menuMusicEl.pause(); }
+function restartMenuMusic() {
+  if (!menuMusicEl) return;
+  menuMusicEl.pause();
+  menuMusicEl.currentTime = 0;
+  playMenuMusic();
+}
+
+// Gameplay music tracks (kept from your original)
+const musicTracks = [
+  document.getElementById("bg-music-1"),
+  document.getElementById("bg-music-2"),
+  document.getElementById("bg-music-3")
+];
+let currentMusicIndex = 0;
+function getCurrentMusicEl() { return musicTracks[currentMusicIndex] || null; }
+function playMusic() {
+  const el = getCurrentMusicEl();
+  if (!el) return;
+  el.volume = 0.4;
+  if (el.paused) el.play().catch(() => {});
+}
+function pauseMusic() { const el = getCurrentMusicEl(); if (el) el.pause(); }
+function restartMusic() {
+  const el = getCurrentMusicEl();
+  if (!el) return;
+  el.pause();
+  el.currentTime = 0;
+  playMusic();
+}
+function switchMusicTo(index) {
+  if (index < 0 || index >= musicTracks.length) return;
+  const current = getCurrentMusicEl();
+  const wasPlaying = current && !current.paused;
+  if (current) { current.pause(); current.currentTime = 0; }
+  currentMusicIndex = index;
+  if (wasPlaying && gameStarted && !paused && !gameOver && !runEnded) playMusic();
+}
+
+// SFX
+const explosionEl = document.getElementById("sfx-explosion");
+function playExplosion() {
+  if (!explosionEl) return;
+  explosionEl.currentTime = 0;
+  explosionEl.volume = 0.8;
+  explosionEl.play().catch(() => {});
+}
+const pauseSfx = document.getElementById("sfx-pause");
+const stepSfx  = document.getElementById("sfx-step");
+const clickSfx = document.getElementById("sfx-click");
+function playPauseSfx() { if (pauseSfx) { pauseSfx.currentTime = 0; pauseSfx.play().catch(() => {}); } }
+function playStepSfx()  { if (stepSfx)  { stepSfx.currentTime = 0; stepSfx.play().catch(() => {}); } }
+function playClickSfx() { if (clickSfx) { clickSfx.currentTime = 0; clickSfx.play().catch(() => {}); } }
+
+// -------------------------------------
+// Start menu selection (keyboard/gamepad)
+// -------------------------------------
+const modeButtons = [btn1P, btn2P];
+const charButtons = [btnCharSkier, btnCharSnowboarder];
+
+let selectedModeIndex = 0;
+let selectedCharIndex = 1; // default snowboarder
+let menuLevel = 0; // 0 = choose 1P/2P, 1 = choose character for 1P
+
+function updateMenuSelection() {
+  if (menuLevel === 0) {
+    modeButtons.forEach((btn, idx) => btn.classList.toggle("selected", idx === selectedModeIndex));
+    charButtons.forEach(btn => btn.classList.remove("selected"));
+  } else {
+    charButtons.forEach((btn, idx) => btn.classList.toggle("selected", idx === selectedCharIndex));
+    modeButtons.forEach(btn => btn.classList.remove("selected"));
+  }
+}
+updateMenuSelection();
+
+// Gamepad edge detection
+let padLeftPrev = false;
+let padRightPrev = false;
+let padAPrev = false;
+let padStartPrev = false;
+
+// -------------------------------------
+// Mobile UI behavior (skip 1P/2P)
+// -------------------------------------
+function applyMenuForScreenSize() {
+  isMobile = isMobileUI();
+
+  if (!gameStarted && !gameOver) {
+    if (isMobile) {
+      startLegendEl.textContent = "TAP LEFT/RIGHT SIDE TO STEER";
+      modeSelectRow.style.display = "none";
+      charSelectRow.style.display = "flex";
+      menuLevel = 1;
+      selectedCharIndex = 1;
+    } else {
+      startLegendEl.textContent = "PLAYER 1: Arrow keys | PLAYER 2: A / D";
+      modeSelectRow.style.display = "flex";
+      charSelectRow.style.display = "none";
+      menuLevel = 0;
+      selectedModeIndex = 0;
+      selectedCharIndex = 1;
+    }
+    updateMenuSelection();
+  }
+}
+applyMenuForScreenSize();
+window.addEventListener("resize", applyMenuForScreenSize);
+
+// -------------------------------------
+// Start / Mode + Character Selection
+// -------------------------------------
+function enterSinglePlayerCharacterSelect() {
+  mode = "1P";
+  menuLevel = 1;
+  selectedCharIndex = 1;
+  modeSelectRow.style.display = "none";
+  charSelectRow.style.display = "flexreve";
+  charSelectRow.style.display = "flex";
+  updateMenuSelection();
+}
+
+function startSinglePlayer(character) {
+  mode = "1P";
+  singlePlayerCharacter = character;
+
+  if (character === "skier") {
+    activePlayers = [skier];
+    skier.x = canvas.width / 2;
+  } else {
+    activePlayers = [snowboarder];
+    snowboarder.x = canvas.width / 2;
+  }
+
+  bestKey = "bestTime1P_spruce";
+  bestTime = parseFloat(localStorage.getItem(bestKey) || "0");
+
+  startGame();
+}
+
+function startTwoPlayer() {
+  mode = "2P";
+
+  skier.x = canvas.width / 2 - 80;
+  snowboarder.x = canvas.width / 2 + 80;
+  skier.lastX = skier.x;
+  snowboarder.lastX = snowboarder.x;
+
+  skier.crashed = false;
+  snowboarder.crashed = false;
+  skier.crashMeters = 0;
+  snowboarder.crashMeters = 0;
+
+  skier.emoji = skier.baseEmoji;
+  snowboarder.emoji = snowboarder.baseEmoji;
+
+  skier.facingRight = false;
+  snowboarder.facingRight = false;
+
+  activePlayers = [skier, snowboarder];
+  bestKey = "bestTime2P_spruce";
+  bestTime = parseFloat(localStorage.getItem(bestKey) || "0");
+
+  startGame();
+}
+
+btn1P.addEventListener("click", () => {
+  playClickSfx();
+  enterSinglePlayerCharacterSelect();
+});
+btn2P.addEventListener("click", () => {
+  playClickSfx();
+  startTwoPlayer();
+});
+btnCharSkier.addEventListener("click", () => {
+  playClickSfx();
+  startSinglePlayer("skier");
+});
+btnCharSnowboarder.addEventListener("click", () => {
+  playClickSfx();
+  startSinglePlayer("snowboarder");
+});
+
+// -------------------------------------
+// Pixel transition
+// -------------------------------------
+function startPixelTransition(onDone) {
+  pixelCanvas.width = window.innerWidth;
+  pixelCanvas.height = window.innerHeight;
+  pixelCanvas.style.display = "block";
+
+  const stripeHeight = Math.ceil(pixelCanvas.height * 0.10);
+  const stripeCount = Math.ceil(pixelCanvas.height / stripeHeight);
+  const stripeDuration = 300;
+  const stripeDelay = 80;
+
+  let start = null;
+  function animate(ts) {
+    if (start === null) start = ts;
+    const elapsed = ts - start;
+
+    pctx.clearRect(0, 0, pixelCanvas.width, pixelCanvas.height);
+    pctx.fillStyle = "#D9E5F4";
+
+    for (let i = 0; i < stripeCount; i++) {
+      const local = elapsed - i * stripeDelay;
+      if (local <= 0) continue;
+      const progress = Math.min(local / stripeDuration, 1);
+      const w = pixelCanvas.width * progress;
+      const y = i * stripeHeight;
+      pctx.fillRect(0, y, w, stripeHeight);
+    }
+
+    const totalDuration = (stripeCount - 1) * stripeDelay + stripeDuration;
+    if (elapsed < totalDuration) requestAnimationFrame(animate);
+    else {
+      if (onDone) onDone();
+      pixelCanvas.style.display = "none";
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+// -------------------------------------
+// Game start/reset core
+// -------------------------------------
+function startGameCore() {
+  gameStarted = true;
+  startTime = null;
+
+  obstacles = [];
+  snowParticles = [];
+  gameOver = false;
+
+  runEnded = false;
+  freezeTimeSec = 0;
+  pendingGameOverTime = 0;
+
+  paused = false;
+  pausedAt = 0;
+  pausedAccum = 0;
+
+  spawnTimer = 0;
+  lastFrameTime = null;
+
+  pauseOverlay.classList.remove("visible");
+
+  [skier, snowboarder].forEach(p => {
+    p.emoji = p.baseEmoji;
+    p.crashed = false;
+    p.crashMeters = 0;
+    p.lastX = null;
+    p.facingRight = false;
+    p.y = -150;
+  });
+
+  introSlideStart = performance.now();
+  introSliding = true;
+}
+
+function startGame() {
+  if (transitioningToGame) return;
+  transitioningToGame = true;
+
+  pauseMenuMusic();
+  restartMusic();
+
+  startPixelTransition(() => {
+    startScreen.style.display = "none";
+    startGameCore();
+    transitioningToGame = false;
+  });
+}
+
+// Restart back to START SCREEN (no reload)
+function restartGame() {
+  gameStarted = false;
+  gameOver = false;
+  runEnded = false;
+  transitioningToGame = false;
+
+  pauseMusic();
+  playMenuMusic();
+
+  startTime = null;
+  currentTimeSec = 0;
+  freezeTimeSec = 0;
+  pendingGameOverTime = 0;
+
+  paused = false;
+  pausedAt = 0;
+  pausedAccum = 0;
+
+  spawnTimer = 0;
+  lastFrameTime = null;
+
+  obstacles = [];
+  snowParticles = [];
+
+  // players reset
+  [skier, snowboarder].forEach(p => {
+    p.emoji = p.baseEmoji;
+    p.crashed = false;
+    p.crashMeters = 0;
+    p.lastX = null;
+    p.facingRight = false;
+    p.y = targetY();
+  });
+
+  // HUD reset
+  hudDistanceEl.textContent = "DISTANCE: 0m";
+  hudBestEl.textContent = "BEST: 0m";
+
+  // show start screen, hide game over
+  startScreen.style.display = "flex";
+  gameOverOverlay.classList.remove("visible");
+
+  // reset menus based on device
+  applyMenuForScreenSize();
+}
+restartBtn.onclick = () => { playClickSfx(); restartGame(); };
+
+// -------------------------------------
+// Input
+// -------------------------------------
+const keys = {};
+
+// Mobile touch steering
+let touchDir = 0;
+let touchActive = false;
+
+function updateTouchDirFromEvent(e) {
+  if (!isMobile) return;
+  if (!gameStarted || gameOver || paused || runEnded) return;
+
+  const x = e.clientX ?? (e.touches && e.touches[0] && e.touches[0].clientX);
+  if (typeof x !== "number") return;
+
+  touchDir = (x < canvas.width / 2) ? -1 : 1;
+}
+
+// Pointer events
+canvas.addEventListener("pointerdown", (e) => {
+  if (!isMobile) return;
+  touchActive = true;
+  updateTouchDirFromEvent(e);
+  e.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener("pointermove", (e) => {
+  if (!isMobile || !touchActive) return;
+  updateTouchDirFromEvent(e);
+  e.preventDefault();
+}, { passive: false });
+
+window.addEventListener("pointerup", () => {
+  if (!isMobile) return;
+  touchActive = false;
+  touchDir = 0;
+});
+window.addEventListener("pointercancel", () => {
+  if (!isMobile) return;
+  touchActive = false;
+  touchDir = 0;
+});
+
+// Keyboard
+window.addEventListener("keydown", e => {
+  // ESC returns to start
+  if (e.code === "Escape") {
+    e.preventDefault();
+    restartGame();
+    return;
+  }
+
+  if (transitioningToGame) return;
+
+  // Reset best score with 0
+  if ((e.code === "Digit0" || e.code === "Numpad0") && bestKey) {
+    e.preventDefault();
+    bestTime = 0;
+    localStorage.removeItem(bestKey);
+    hudBestEl.textContent = "BEST: 0m";
+    return;
+  }
+
+  // Switch music with 1/2/3 during gameplay
+  if (gameStarted && !gameOver) {
+    if (e.code === "Digit1" || e.code === "Numpad1") { e.preventDefault(); switchMusicTo(0); return; }
+    if (e.code === "Digit2" || e.code === "Numpad2") { e.preventDefault(); switchMusicTo(1); return; }
+    if (e.code === "Digit3" || e.code === "Numpad3") { e.preventDefault(); switchMusicTo(2); return; }
+  }
+
+  // Start screen keyboard navigation (desktop only)
+  if (!gameStarted && !gameOver && !isMobile) {
+    if (e.code === "ArrowLeft" || e.code === "ArrowRight") {
+      e.preventDefault();
+      if (menuLevel === 0) {
+        selectedModeIndex = (selectedModeIndex + (e.code === "ArrowLeft" ? -1 : 1) + modeButtons.length) % modeButtons.length;
+      } else {
+        selectedCharIndex = (selectedCharIndex + (e.code === "ArrowLeft" ? -1 : 1) + charButtons.length) % charButtons.length;
       }
+      updateMenuSelection();
+      playStepSfx();
+      playMenuMusic();
+      return;
+    }
 
-      const ASSETS = {
-        start: "start.png",
-        spruce: "spruce.png",
-        isak: "isak.png",
-        assar: "assar.png",
-        eli: "eli.png"
-      };
+    if (e.code === "Space" || e.code === "Enter") {
+      e.preventDefault();
+      playClickSfx();
 
-      /* ================= CANVAS ================= */
-      const canvas = document.getElementById("game");
-      const ctx = canvas.getContext("2d");
-
-      function resizeCanvas() {
-        const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-        const w = Math.floor(window.innerWidth);
-        const h = Math.floor(window.innerHeight);
-        canvas.width = w * dpr;
-        canvas.height = h * dpr;
-        canvas.style.width = w + "px";
-        canvas.style.height = h + "px";
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.imageSmoothingEnabled = false;
+      if (menuLevel === 0) {
+        if (selectedModeIndex === 0) enterSinglePlayerCharacterSelect();
+        else startTwoPlayer();
+      } else {
+        if (selectedCharIndex === 0) startSinglePlayer("skier");
+        else startSinglePlayer("snowboarder");
       }
-      window.addEventListener("resize", resizeCanvas, { passive: true });
-      resizeCanvas();
+      return;
+    }
+  }
 
-      /* ================= UI ================= */
-      const startOverlay = document.getElementById("startOverlay");
-      const selectOverlay = document.getElementById("selectOverlay");
-      const overOverlay = document.getElementById("overOverlay");
-      const overStats = document.getElementById("overStats");
-      const startBtn = document.getElementById("startBtn");
-      const retryBtn = document.getElementById("retryBtn");
-      const backBtn = document.getElementById("backBtn");
+  // Restart screen: space/enter
+  if (gameOver && (e.code === "Space" || e.code === "Enter")) {
+    e.preventDefault();
+    playClickSfx();
+    restartGame();
+    return;
+  }
 
-      function showOverlay(which) {
-        startOverlay.classList.toggle("show", which === "start");
-        selectOverlay.classList.toggle("show", which === "select");
-        overOverlay.classList.toggle("show", which === "over");
-      }
+  // Pause
+  if (gameStarted && !gameOver) {
+    if (!paused && e.code === "KeyP" && !runEnded) {
+      paused = true;
+      pausedAt = performance.now();
+      pauseOverlay.classList.add("visible");
+      playPauseSfx();
+      pauseMusic();
+      return;
+    } else if (paused) {
+      pausedAccum += performance.now() - pausedAt;
+      paused = false;
+      pausedAt = 0;
+      pauseOverlay.classList.remove("visible");
+      playMusic();
+      return;
+    }
+  }
 
-      /* ================= MUSIC ================= */
-      const bgm = document.getElementById("bgm");
-      function startMusic() {
-        if (!bgm) return;
-        bgm.volume = 0.45;
-        bgm.play().catch(() => {});
-      }
-      function stopMusic() {
-        if (!bgm) return;
-        bgm.pause();
-        bgm.currentTime = 0;
-      }
+  keys[e.code] = true;
+});
+window.addEventListener("keyup", e => { keys[e.code] = false; });
 
-      /* ================= HITBOX TUNING ================= */
-      // Smaller hitboxes to avoid "void-to-void" collisions:
-      const PLAYER_HITBOX_SCALE = 0.70; // 0.60 = even smaller, 0.80 = bigger
-      const SPRUCE_HITBOX_SCALE  = 0.70;
+// Auto pause on blur (gameplay)
+window.addEventListener("blur", () => {
+  if (gameStarted && !gameOver && !runEnded && !paused) {
+    paused = true;
+    pausedAt = performance.now();
+    pauseOverlay.classList.add("visible");
+    pauseMusic();
+  }
+});
 
-      function makeHitboxCentered(cx, cy, w, h, scale) {
-        const hw = (w * scale) * 0.5;
-        const hh = (h * scale) * 0.5;
-        return { x: cx - hw, y: cy - hh, w: hw * 2, h: hh * 2 };
-      }
+// Gamepad movement (kept)
+function getGamepadMovement() {
+  if (!navigator.getGamepads) return null;
+  const gp = navigator.getGamepads()?.[0];
+  if (!gp) return null;
 
-      function aabb(r1, r2) {
-        return r1.x < r2.x + r2.w &&
-               r1.x + r1.w > r2.x &&
-               r1.y < r2.y + r2.h &&
-               r1.y + r1.h > r2.y;
-      }
+  if (gp.buttons[14]?.pressed) return -1;
+  if (gp.buttons[15]?.pressed) return 1;
 
-      /* ================= INPUT ================= */
-      const keys = { left: false, right: false };
+  const axis = gp.axes[0] || 0;
+  if (axis < -0.3) return -1;
+  if (axis > 0.3) return 1;
+  return 0;
+}
 
-      window.addEventListener("keydown", (e) => {
-        const k = e.key.toLowerCase();
-        if (k === "arrowleft" || k === "a") keys.left = true;
-        if (k === "arrowright" || k === "d") keys.right = true;
-      });
-      window.addEventListener("keyup", (e) => {
-        const k = e.key.toLowerCase();
-        if (k === "arrowleft" || k === "a") keys.left = false;
-        if (k === "arrowright" || k === "d") keys.right = false;
-      });
+// -------------------------------------
+// Obstacles
+// -------------------------------------
+function getClusterParams(timeSec) {
+  const extra = Math.min(Math.floor(timeSec / 5), 7);
 
-      const pointer = { down: false, x: 0 };
-      function setPointerFromEvent(e) {
-        if (typeof e.clientX === "number") pointer.x = e.clientX;
-        if (e.touches && e.touches.length) pointer.x = e.touches[0].clientX;
-      }
+  if (isMobile) {
+    return {
+      base: MOBILE_CLUSTER_BASE,
+      extraCap: 0,
+      randMax: 0
+    };
+  }
 
-      window.addEventListener("pointerdown", (e) => {
-        if (state !== STATE.PLAY) return;
-        pointer.down = true;
-        setPointerFromEvent(e);
-        e.preventDefault();
-      }, { passive: false });
+  return {
+    base: DESKTOP_CLUSTER_BASE,
+    extraCap: Math.min(extra, DESKTOP_CLUSTER_EXTRA_CAP),
+    randMax: DESKTOP_CLUSTER_RAND_MAX
+  };
+}
 
-      window.addEventListener("pointermove", (e) => {
-        if (!pointer.down || state !== STATE.PLAY) return;
-        setPointerFromEvent(e);
-        e.preventDefault();
-      }, { passive: false });
+function spawnTreeCluster() {
+  const t = currentTimeSec;
+  const { base, extraCap, randMax } = getClusterParams(t);
 
-      window.addEventListener("pointerup", () => { pointer.down = false; });
-      window.addEventListener("pointercancel", () => { pointer.down = false; });
+  const rand = Math.floor(Math.random() * (randMax + 1)); // 0..randMax
+  const count = base + extraCap + rand;
 
-      window.addEventListener("touchstart", (e) => {
-        if (state !== STATE.PLAY) return;
-        pointer.down = true;
-        setPointerFromEvent(e);
-        e.preventDefault();
-      }, { passive: false });
-      window.addEventListener("touchmove", (e) => {
-        if (!pointer.down || state !== STATE.PLAY) return;
-        setPointerFromEvent(e);
-        e.preventDefault();
-      }, { passive: false });
-      window.addEventListener("touchend", () => { pointer.down = false; }, { passive: true });
-      window.addEventListener("touchcancel", () => { pointer.down = false; }, { passive: true });
+  const baseX = Math.random() * (canvas.width - 160) + 80;
+  const spread = 60 + extraCap * 15;
 
-      function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  for (let i = 0; i < count; i++) {
+    obstacles.push({
+      x: baseX + (Math.random() - 0.5) * spread,
+      y: canvas.height + 50 + Math.random() * 50,
+      emoji: "🌲",
+      size: 50,
+      speed: treeSpeed()
+    });
+  }
+}
 
-      function computeDir() {
-        let dir = (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
-        if (pointer.down) dir = (pointer.x < window.innerWidth * 0.5) ? -1 : 1;
-        return clamp(dir, -1, 1);
-      }
+function collided(player, obstacle) {
+  const dx = player.x - obstacle.x;
+  const dy = player.y - obstacle.y;
+  return Math.sqrt(dx * dx + dy * dy) < 50;
+}
 
-      /* ================= GAME STATE ================= */
-      const STATE = { BOOT: "boot", START: "start", SELECT: "select", PLAY: "play", OVER: "over" };
-      let state = STATE.BOOT;
+// -------------------------------------
+// Snow dust
+// -------------------------------------
+function spawnSnowDustForPlayer(player) {
+  if (player.crashed) return;
 
-      // Speeds mimicking your other game
-      const PLAYER_SPEED = 480; // px/s
-      const SPRUCE_SPEED = 720; // px/s
+  const lastX = player.lastX ?? player.x;
+  const dx = player.x - lastX;
+  player.lastX = player.x;
 
-      const game = {
-        time: 0,
-        meters: 0,      // 10 m/s
-        spruces: [],
-        spawnBucket: 0,
-        player: {
-          x: 0,
-          y: 0,
-          w: 56,
-          h: 56,
-          img: null,
-          facing: 1
+  const intensity = Math.abs(dx) > 0.5 ? 3 : 1;
+
+  for (let i = 0; i < intensity; i++) {
+    snowParticles.push({
+      x: player.x + (Math.random() - 0.5) * 18,
+      y: player.y + Math.random() * 2,
+      vx: (Math.random() - 0.5) * 40,
+      vy: -60 - Math.random() * 160,
+      life: 0.3 + Math.random() * 0.3,
+      size: 2 + Math.random() * 2
+    });
+  }
+}
+
+function updateSnowDust(dt) {
+  for (let i = snowParticles.length - 1; i >= 0; i--) {
+    const p = snowParticles[i];
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.life <= 0) snowParticles.splice(i, 1);
+  }
+
+  const MAX_PARTICLES = 400;
+  if (snowParticles.length > MAX_PARTICLES) {
+    snowParticles.splice(0, snowParticles.length - MAX_PARTICLES);
+  }
+}
+
+function drawSnowDust() {
+  ctx.save();
+  ctx.fillStyle = "rgba(255,255,255,0.9)";
+  snowParticles.forEach(p => ctx.fillRect(p.x, p.y, p.size, p.size));
+  ctx.restore();
+}
+
+// -------------------------------------
+// Game over + best score
+// -------------------------------------
+function endGame() {
+  if (gameOver) return;
+  gameOver = true;
+
+  pauseMusic();
+  restartMenuMusic();
+
+  // Save best
+  const prevBest = parseFloat(localStorage.getItem(bestKey) || "0");
+  const isNew = freezeTimeSec > prevBest;
+
+  if (isNew) {
+    bestTime = freezeTimeSec;
+    localStorage.setItem(bestKey, bestTime.toString());
+  } else {
+    bestTime = prevBest;
+  }
+
+  if (mode === "1P") {
+    const p = activePlayers[0] || snowboarder;
+    const meters = Math.round(p.crashMeters || freezeTimeSec * 10);
+    resultTextEl.textContent = `you made it ${meters} meters`;
+  } else if (mode === "2P") {
+    const p1m = Math.round(snowboarder.crashMeters || freezeTimeSec * 10);
+    const p2m = Math.round(skier.crashMeters || freezeTimeSec * 10);
+    resultTextEl.textContent = `Player 1: ${p1m} meters | Player 2: ${p2m} meters`;
+  } else {
+    const meters = Math.round(freezeTimeSec * 10);
+    resultTextEl.textContent = `you made it ${meters} meters`;
+  }
+
+  gameOverOverlay.classList.add("visible");
+  restartBtn.classList.add("selected");
+}
+
+// -------------------------------------
+// Easing
+// -------------------------------------
+function easeOutBack(t) {
+  const c1 = 0.2;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+// -------------------------------------
+// Main loop
+// -------------------------------------
+function update(timestamp) {
+  drawSolidBackground();
+
+  if (lastFrameTime === null) lastFrameTime = timestamp;
+  let dt = (timestamp - lastFrameTime) / 1000;
+  if (dt > 0.05) dt = 0.05;
+  lastFrameTime = timestamp;
+
+  // start time
+  if (!startTime && gameStarted) startTime = timestamp;
+
+  // timekeeping
+  if (runEnded) currentTimeSec = freezeTimeSec;
+  else if (!paused && gameStarted) currentTimeSec = (timestamp - startTime - pausedAccum) / 1000;
+
+  // Intro slide
+  if (introSliding) {
+    const elapsed = timestamp - introSlideStart;
+    const t = Math.min(elapsed / introSlideDuration, 1);
+    const eased = easeOutBack(t);
+
+    const startY = -150;
+    const target = targetY();
+
+    activePlayers.forEach(p => {
+      p.y = startY + (target - startY) * eased;
+    });
+
+    if (t >= 1) {
+      introSliding = false;
+      activePlayers.forEach(p => { p.y = target; });
+    }
+  }
+
+  if (gameStarted && !gameOver) {
+    // Movement
+    if (!runEnded && !paused) {
+      if (mode === "1P") {
+        const p = activePlayers[0];
+        if (p && !p.crashed) {
+          let dir = 0;
+
+          if (isMobile) {
+            dir = touchDir;
+          } else {
+            dir = getGamepadMovement();
+            if (dir === null) {
+              dir = (keys["ArrowLeft"] ? -1 : 0) + (keys["ArrowRight"] ? 1 : 0);
+            }
+          }
+
+          if (dir > 0) p.facingRight = true;
+          else if (dir < 0) p.facingRight = false;
+
+          const speed = (p === skier) ? skiSpeed() : snowboardSpeed();
+          p.x = Math.max(40, Math.min(canvas.width - 40, p.x + dir * speed * dt));
         }
-      };
 
-      function resetRun() {
-        const w = window.innerWidth;
-        const h = window.innerHeight;
+      } else if (mode === "2P") {
+        // Snowboarder = arrows/gamepad, Skier = A/D
+        if (!snowboarder.crashed && activePlayers.includes(snowboarder)) {
+          let dirSnow = getGamepadMovement();
+          if (dirSnow === null) dirSnow = (keys["ArrowLeft"] ? -1 : 0) + (keys["ArrowRight"] ? 1 : 0);
 
-        game.time = 0;
-        game.meters = 0;
-        game.spruces = [];
-        game.spawnBucket = 0;
+          if (dirSnow > 0) snowboarder.facingRight = true;
+          else if (dirSnow < 0) snowboarder.facingRight = false;
 
-        const size = Math.max(44, Math.min(76, Math.floor(Math.min(w, h) * 0.105)));
-        game.player.w = size;
-        game.player.h = size;
-        game.player.x = w * 0.5;
-        game.player.y = h * 0.18;
-        game.player.facing = 1;
-      }
+          snowboarder.x = Math.max(40, Math.min(canvas.width - 40, snowboarder.x + dirSnow * snowboardSpeed() * dt));
+        }
 
-      /* ================= OBSTACLE SPAWNING (cluster logic) ================= */
-      function spawnSpruceCluster(images) {
-        const w = window.innerWidth;
-        const h = window.innerHeight;
+        if (!skier.crashed && activePlayers.includes(skier)) {
+          let dirSki = (keys["KeyA"] ? -1 : 0) + (keys["KeyD"] ? 1 : 0);
 
-        const t = game.time;
-        const extra = Math.min(Math.floor(t / 5), 7);
-        const count = 3 + extra + Math.floor(Math.random() * 2);
+          if (dirSki > 0) skier.facingRight = true;
+          else if (dirSki < 0) skier.facingRight = false;
 
-        const baseX = Math.random() * (w - 160) + 80;
-        const spread = 60 + extra * 15;
-
-        const baseSize = Math.max(36, Math.min(66, Math.floor(Math.min(w, h) * 0.09)));
-
-        for (let i = 0; i < count; i++) {
-          game.spruces.push({
-            x: baseX + (Math.random() - 0.5) * spread,
-            y: h + 50 + Math.random() * 50,
-            w: baseSize,
-            h: baseSize,
-            img: images.spruce
-          });
+          skier.x = Math.max(40, Math.min(canvas.width - 40, skier.x + dirSki * skiSpeed() * dt));
         }
       }
+    }
 
-      /* ================= DRAW ================= */
-      function setFont(sizePx, weight = 700) {
-        ctx.font = `${weight} ${sizePx}px Silkscreen, monospace`;
-        ctx.textBaseline = "top";
-      }
+    // Updates
+    if (!paused) {
+      activePlayers.forEach(spawnSnowDustForPlayer);
+      updateSnowDust(dt);
 
-      function drawImageCover(img) {
-        const cw = window.innerWidth;
-        const ch = window.innerHeight;
-        const iw = img.width;
-        const ih = img.height;
-        const scale = Math.max(cw / iw, ch / ih);
-        const dw = iw * scale;
-        const dh = ih * scale;
-        const dx = (cw - dw) * 0.5;
-        const dy = (ch - dh) * 0.5;
-        ctx.drawImage(img, dx, dy, dw, dh);
-      }
+      // Spawn trees
+      if (!runEnded) {
+        const baseSpawn = isMobile ? MOBILE_SPAWN_BASE : DESKTOP_SPAWN_BASE;
+        const rampSpawn = isMobile ? MOBILE_SPAWN_RAMP : DESKTOP_SPAWN_RAMP;
+        const capSpawn  = isMobile ? MOBILE_SPAWN_CAP  : DESKTOP_SPAWN_CAP;
 
-      function drawHUD() {
-        const pad = 12;
-        setFont(16, 700);
-        ctx.fillStyle = "#111";
-        ctx.fillText(`${Math.floor(game.meters)} m`, pad, pad);
-      }
-
-      function drawSpruces() {
-        for (const s of game.spruces) {
-          ctx.drawImage(s.img, s.x - s.w * 0.5, s.y - s.h * 0.5, s.w, s.h);
-        }
-      }
-
-      function drawPlayer() {
-        const p = game.player;
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        if (p.facing === -1) ctx.scale(-1, 1);
-        ctx.drawImage(p.img, -p.w * 0.5, -p.h * 0.5, p.w, p.h);
-        ctx.restore();
-      }
-
-      /* ================= UPDATE ================= */
-      function update(dt, images) {
-        game.time += dt;
-        game.meters += 10 * dt;
-
-        const dir = computeDir();
-
-        // player movement
-        const w = window.innerWidth;
-        game.player.x += dir * PLAYER_SPEED * dt;
-        game.player.x = clamp(game.player.x, 40, w - 40);
-
-        if (dir !== 0) game.player.facing = dir;
-
-        // spawn curve copied from your other game
-        const spawnProbPerFrameAt60fps = Math.min(0.03 + game.time * 0.003, 0.35);
+        const spawnProbPerFrameAt60fps = Math.min(baseSpawn + currentTimeSec * rampSpawn, capSpawn);
         const clustersPerSecond = spawnProbPerFrameAt60fps * 60;
 
-        game.spawnBucket += dt * clustersPerSecond;
-        while (game.spawnBucket >= 1) {
-          spawnSpruceCluster(images);
-          game.spawnBucket -= 1;
-        }
-
-        // move spruces up
-        for (const s of game.spruces) s.y -= SPRUCE_SPEED * dt;
-
-        // cleanup
-        game.spruces = game.spruces.filter(s => s.y > -80);
-
-        // collision with SMALLER hitboxes
-        const pHB = makeHitboxCentered(
-          game.player.x, game.player.y, game.player.w, game.player.h, PLAYER_HITBOX_SCALE
-        );
-
-        for (const s of game.spruces) {
-          const sHB = makeHitboxCentered(s.x, s.y, s.w, s.h, SPRUCE_HITBOX_SCALE);
-
-          if (aabb(pHB, sHB)) {
-            state = STATE.OVER;
-            showOverlay("over");
-            overStats.textContent = `You skied ${Math.floor(game.meters)} meters.`;
-            stopMusic();
-            break;
-          }
+        spawnTimer += dt * clustersPerSecond;
+        while (spawnTimer >= 1) {
+          spawnTreeCluster();
+          spawnTimer -= 1;
         }
       }
 
-      function render(images) {
-        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+      // Move obstacles
+      obstacles.forEach(o => { o.y -= o.speed * dt; });
+      obstacles = obstacles.filter(o => o.y > -80);
 
-        if (state === STATE.START) {
-          drawImageCover(images.start);
-          return;
-        }
-        if (state === STATE.SELECT) return;
-
-        drawSpruces();
-        drawPlayer();
-        drawHUD();
-
-        if (state === STATE.OVER) {
-          const w = window.innerWidth;
-          setFont(22, 700);
-          ctx.fillStyle = "#111";
-          const text = "CRASHED!";
-          const tw = ctx.measureText(text).width;
-          ctx.fillText(text, (w - tw) / 2, 24);
-        }
-      }
-
-      /* ================= FIXED TIMESTEP LOOP ================= */
-      let last = performance.now();
-      let accumulator = 0;
-      const FIXED_DT = 1 / 120;
-      const MAX_ACCUM = 0.25;
-
-      async function boot() {
-        const [start, spruce, isak, assar, eli] = await Promise.all([
-          loadImage(ASSETS.start),
-          loadImage(ASSETS.spruce),
-          loadImage(ASSETS.isak),
-          loadImage(ASSETS.assar),
-          loadImage(ASSETS.eli),
-        ]);
-
-        const images = { start, spruce, isak, assar, eli };
-
-        state = STATE.START;
-        showOverlay("start");
-
-        startBtn.addEventListener("click", () => {
-          state = STATE.SELECT;
-          showOverlay("select");
-        });
-
-        document.querySelectorAll(".pick").forEach(btn => {
-          btn.addEventListener("click", () => {
-            const key = btn.getAttribute("data-player");
-            game.player.img = images[key];
-            resetRun();
-            state = STATE.PLAY;
-            showOverlay("");
-            startMusic();
-          });
-        });
-
-        retryBtn.addEventListener("click", () => {
-          resetRun();
-          state = STATE.PLAY;
-          showOverlay("");
-          startMusic();
-        });
-
-        backBtn.addEventListener("click", () => {
-          state = STATE.START;
-          showOverlay("start");
-          stopMusic();
-        });
-
-        function frame(now) {
-          let frameDt = (now - last) / 1000;
-          last = now;
-
-          frameDt = Math.max(0, Math.min(frameDt, 0.1));
-          accumulator += frameDt;
-          if (accumulator > MAX_ACCUM) accumulator = MAX_ACCUM;
-
-          while (accumulator >= FIXED_DT) {
-            if (state === STATE.PLAY) update(FIXED_DT, images);
-            accumulator -= FIXED_DT;
-          }
-
-          render(images);
-          requestAnimationFrame(frame);
-        }
-
-        requestAnimationFrame(frame);
-      }
-
-      boot().catch(err => {
-        console.error(err);
-        alert("Missing files. Put start.png, spruce.png, isak.png, assar.png, eli.png and music.mp3 next to this HTML file.");
+      // Slide crashed players
+      activePlayers.forEach(p => {
+        if (p.crashed) p.y -= crashSlideSpeed() * dt;
       });
-    })();
-  </script>
+    }
+
+    // Draw
+    drawSnowDust();
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.font = "50px serif";
+    obstacles.forEach(o => ctx.fillText(o.emoji, o.x, o.y));
+
+    // Players (mirror if facingRight)
+    activePlayers.forEach(p => {
+      ctx.font = `${p.size}px serif`;
+      if (p.facingRight && !p.crashed) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.scale(-1, 1);
+        ctx.fillText(p.emoji, 0, 0);
+        ctx.restore();
+      } else {
+        ctx.fillText(p.emoji, p.x, p.y);
+      }
+    });
+
+    // Collisions
+    if (!runEnded && !paused) {
+      obstacles.forEach(o => {
+        activePlayers.forEach(p => {
+          if (p.crashed) return;
+          if (collided(p, o)) {
+            p.crashed = true;
+            p.emoji = "💥";
+            p.crashMeters = currentTimeSec * 10;
+            playExplosion();
+
+            if (mode === "1P") {
+              runEnded = true;
+              freezeTimeSec = currentTimeSec;
+              pendingGameOverTime = timestamp + 1000;
+            } else if (mode === "2P") {
+              if (skier.crashed && snowboarder.crashed) {
+                runEnded = true;
+                freezeTimeSec = currentTimeSec;
+                pendingGameOverTime = timestamp + 1000;
+              }
+            }
+          }
+        });
+      });
+    }
+
+    if (runEnded && !gameOver && timestamp >= pendingGameOverTime) endGame();
+
+    // HUD
+    const timeForHud = runEnded ? freezeTimeSec : currentTimeSec;
+    const metersNow = timeForHud * 10;
+
+    hudDistanceEl.textContent = `DISTANCE: ${metersNow.toFixed(0)}m`;
+    hudBestEl.textContent = `BEST: ${(bestTime * 10).toFixed(0)}m`;
+  }
+
+  requestAnimationFrame(update);
+}
+
+requestAnimationFrame(update);
+playMenuMusic();
+</script>
 </body>
 </html>
