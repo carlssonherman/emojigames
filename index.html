@@ -2,10 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Emoji Games</title>
-
-  <!-- Mobile viewport fix -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Google Font: Silkscreen -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,22 +16,29 @@
       font-family: "Silkscreen", monospace;
     }
 
-    body {
+    html, body {
       margin: 0;
-      min-height: 100vh;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       background-color: #050510;
       color: #ffffff;
+    }
+
+    body {
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
     }
 
     /* Pixel-art starry sky */
     body::before {
       content: "";
-      position: absolute;
+      position: fixed;
       inset: 0;
+      width: 100vw;
+      height: 100vh;
       background:
         radial-gradient(1px 1px at 10% 20%, #fff, transparent),
         radial-gradient(1px 1px at 30% 80%, #fff, transparent),
@@ -45,48 +50,35 @@
       background-size: 200px 200px;
       image-rendering: pixelated;
       opacity: 0.8;
+      z-index: 0;
     }
 
     .container {
       position: relative;
-      text-align: center;
       z-index: 1;
       width: 100%;
-      padding: 24px;
+      max-width: 1100px;
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      text-align: center;
     }
 
     .logo {
+      width: 80%;
       max-width: 800px;
-      width: 90%;
-      margin: 0 auto 40px;
-      image-rendering: pixelated;
+      margin: 0 auto 48px;
       display: block;
+      image-rendering: pixelated;
     }
 
-    /* HORIZONTAL LAUNCHER */
     .menu {
       display: flex;
-      flex-direction: row;
+      justify-content: center;
       gap: 48px;
-      justify-content: flex-start;
-      overflow-x: auto;
-      overflow-y: hidden;
-      padding: 8px 24px 16px;
-      scroll-behavior: smooth;
-      -webkit-overflow-scrolling: touch;
-      white-space: nowrap;
-    }
-
-    /* Hide scrollbar (cross-browser) */
-    .menu::-webkit-scrollbar {
-      display: none;
-    }
-    .menu {
-      scrollbar-width: none; /* Firefox */
+      flex-wrap: wrap;
     }
 
     .app {
-      flex: 0 0 auto;
       text-decoration: none;
       color: #ffffff;
       display: flex;
@@ -94,6 +86,7 @@
       align-items: center;
       gap: 14px;
       transition: transform 0.15s ease;
+      cursor: pointer;
     }
 
     .app:hover {
@@ -110,28 +103,26 @@
 
     .app-label {
       font-size: 16px;
-      white-space: nowrap;
     }
 
-    /* 📱 Mobile boost */
+    /* Mobile tweaks */
     @media (max-width: 600px) {
-      .app-icon {
-        width: 200px;
-        height: 200px;
-      }
-
-      .app-label {
-        font-size: 18px;
-      }
-
       .menu {
         gap: 32px;
-        padding-bottom: 24px;
+      }
+
+      .app-icon {
+        width: 140px;
+        height: 140px;
       }
     }
   </style>
 </head>
 <body>
+
+  <!-- Click sound -->
+  <audio id="clickSound" src="click.mp3" preload="auto"></audio>
+
   <div class="container">
     <img
       src="emoji-games-start.png"
@@ -140,26 +131,33 @@
     />
 
     <div class="menu">
-      <a href="/emojihunter" class="app">
-        <img
-          src="emoji-hunter.png"
-          alt="Emoji Hunter"
-          class="app-icon"
-        />
+      <a href="/emojihunter" class="app" data-link="/emojihunter">
+        <img src="emoji-hunter.png" alt="Emoji Hunter" class="app-icon" />
         <div class="app-label">EMOJI HUNTER</div>
       </a>
 
-      <a href="/emojidownhill" class="app">
-        <img
-          src="emoji-downhill.png"
-          alt="Emoji Downhill"
-          class="app-icon"
-        />
+      <a href="/emojidownhill" class="app" data-link="/emojidownhill">
+        <img src="emoji-downhill.png" alt="Emoji Downhill" class="app-icon" />
         <div class="app-label">EMOJI DOWNHILL</div>
       </a>
-
-      <!-- Add more apps here later -->
     </div>
   </div>
+
+  <script>
+    const clickSound = document.getElementById("clickSound");
+
+    document.querySelectorAll(".app").forEach(app => {
+      app.addEventListener("click", event => {
+        event.preventDefault();
+        clickSound.currentTime = 0;
+        clickSound.play();
+
+        const link = app.getAttribute("data-link");
+        setTimeout(() => {
+          window.location.href = link;
+        }, 150);
+      });
+    });
+  </script>
 </body>
 </html>
