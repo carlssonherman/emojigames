@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Ski Downhill</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #fff;
+      touch-action: none;
+      font-family: "Silkscreen", monospace;
+    }
+    #wrap { position: fixed; inset: 0; background: #fff; }
+    canvas { display: block; width: 100vw; height: 100vh; background: #fff; }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 14px;
+      padding: 18px;
+      box-sizing: border-box;
+      color: #111;
+      text-align: center;
+    }
+    .overlay.show { display: flex; }
+
+    .btn {
+      font-family: "Silkscreen", monospace;
+      font-size: 16px;
+      padding: 12px 16px;
+      border: 3px solid #111;
+      background: #fff;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { transform: translateY(1px); }
+
+    .title {
+      font-size: 18px;
+      font-weight: 700;
+      background: rgba(255,255,255,0.90);
+      padding: 8px 10px;
+      border: 3px solid #111;
+    }
+
+    .players {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+    }
+    .playerCard {
+      border: 3px solid #111;
+      padding: 10px;
+      background: rgba(255,255,255,0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 120px;
+    }
+    .playerCard img {
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+
+    .hint {
+      font-size: 12px;
+      background: rgba(255,255,255,0.90);
+      padding: 8px 10px;
+      border: 3px solid #111;
+      max-width: 560px;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="wrap">
+    <canvas id="game"></canvas>
+
+    <!-- Background music -->
+    <audio id="bgm" loop preload="auto">
+      <source src="music.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- START overlay -->
+    <div id="startOverlay" class="overlay show">
+      <div class="title">Ski Downhill</div>
+      <button id="startBtn" class="btn">START</button>
+      <div class="hint">
+        Mobile: press/hold left or right side<br>
+        Desktop: Arrow keys / A-D
+      </div>
+    </div>
+
+    <!-- SELECT overlay -->
+    <div id="selectOverlay" class="overlay">
+      <div class="title">Choose Player</div>
+      <div class="players">
+        <div class="playerCard">
+          <img src="isak.png" alt="Isak">
+          <button class="btn pick" data-player="isak">ISAK</button>
+        </div>
+        <div class="playerCard">
+          <img src="assar.png" alt="Assar">
+          <button class="btn pick" data-player="assar">ASSAR</button>
+        </div>
+        <div class="playerCard">
+          <img src="eli.png" alt="Eli">
+          <button class="btn pick" data-player="eli">ELI</button>
+        </div>
+      </div>
+      <div class="hint">Spruces spawn in clusters (same logic as your Emoji Downhill).</div>
+    </div>
+
+    <!-- GAME OVER overlay -->
+    <div id="overOverlay" class="overlay">
+      <div class="title">CRASHED!</div>
+      <div class="hint" id="overStats"></div>
+      <button id="retryBtn" class="btn">RETRY</button>
+      <button id="backBtn" class="btn">BACK TO MENU</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      /* ================= ASSETS ================= */
+      function loadImage(src) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error("Failed to load " + src));
+          img.src = src;
+        });
+      }
+
+      const ASSETS = {
+        start: "start.png",
+        spruce: "spruce.png",
+        isak: "isak.png",
+        assar: "assar.png",
+        eli: "eli.png"
+      };
+
+      /* ================= CANVAS ================= */
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+
+      function resizeCanvas() {
+        const dpr = Math.max(1, Math.floor(window.devicePixelRatio || 1));
+        const w = Math.floor(window.innerWidth);
+        const h = Math.floor(window.innerHeight);
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingEnabled = false;
+      }
+      window.addEventListener("resize", resizeCanvas, { passive: true });
+      resizeCanvas();
+
+      /* ================= UI ================= */
+      const startOverlay = document.getElementById("startOverlay");
+      const selectOverlay = document.getElementById("selectOverlay");
+      const overOverlay = document.getElementById("overOverlay");
+      const overStats = document.getElementById("overStats");
+      const startBtn = document.getElementById("startBtn");
+      const retryBtn = document.getElementById("retryBtn");
+      const backBtn = document.getElementById("backBtn");
+
+      function showOverlay(which) {
+        startOverlay.classList.toggle("show", which === "start");
+        selectOverlay.classList.toggle("show", which === "select");
+        overOverlay.classList.toggle("show", which === "over");
+      }
+
+      /* ================= MUSIC ================= */
+      const bgm = document.getElementById("bgm");
+      function startMusic() {
+        if (!bgm) return;
+        bgm.volume = 0.45;
+        bgm.play().catch(() => {});
+      }
+      function stopMusic() {
+        if (!bgm) return;
+        bgm.pause();
+        bgm.currentTime = 0;
+      }
+
+      /* ================= HITBOX TUNING ================= */
+      // Smaller hitboxes to avoid "void-to-void" collisions:
+      const PLAYER_HITBOX_SCALE = 0.70; // 0.60 = even smaller, 0.80 = bigger
+      const SPRUCE_HITBOX_SCALE  = 0.70;
+
+      function makeHitboxCentered(cx, cy, w, h, scale) {
+        const hw = (w * scale) * 0.5;
+        const hh = (h * scale) * 0.5;
+        return { x: cx - hw, y: cy - hh, w: hw * 2, h: hh * 2 };
+      }
+
+      function aabb(r1, r2) {
+        return r1.x < r2.x + r2.w &&
+               r1.x + r1.w > r2.x &&
+               r1.y < r2.y + r2.h &&
+               r1.y + r1.h > r2.y;
+      }
+
+      /* ================= INPUT ================= */
+      const keys = { left: false, right: false };
+
+      window.addEventListener("keydown", (e) => {
+        const k = e.key.toLowerCase();
+        if (k === "arrowleft" || k === "a") keys.left = true;
+        if (k === "arrowright" || k === "d") keys.right = true;
+      });
+      window.addEventListener("keyup", (e) => {
+        const k = e.key.toLowerCase();
+        if (k === "arrowleft" || k === "a") keys.left = false;
+        if (k === "arrowright" || k === "d") keys.right = false;
+      });
+
+      const pointer = { down: false, x: 0 };
+      function setPointerFromEvent(e) {
+        if (typeof e.clientX === "number") pointer.x = e.clientX;
+        if (e.touches && e.touches.length) pointer.x = e.touches[0].clientX;
+      }
+
+      window.addEventListener("pointerdown", (e) => {
+        if (state !== STATE.PLAY) return;
+        pointer.down = true;
+        setPointerFromEvent(e);
+        e.preventDefault();
+      }, { passive: false });
+
+      window.addEventListener("pointermove", (e) => {
+        if (!pointer.down || state !== STATE.PLAY) return;
+        setPointerFromEvent(e);
+        e.preventDefault();
+      }, { passive: false });
+
+      window.addEventListener("pointerup", () => { pointer.down = false; });
+      window.addEventListener("pointercancel", () => { pointer.down = false; });
+
+      window.addEventListener("touchstart", (e) => {
+        if (state !== STATE.PLAY) return;
+        pointer.down = true;
+        setPointerFromEvent(e);
+        e.preventDefault();
+      }, { passive: false });
+      window.addEventListener("touchmove", (e) => {
+        if (!pointer.down || state !== STATE.PLAY) return;
+        setPointerFromEvent(e);
+        e.preventDefault();
+      }, { passive: false });
+      window.addEventListener("touchend", () => { pointer.down = false; }, { passive: true });
+      window.addEventListener("touchcancel", () => { pointer.down = false; }, { passive: true });
+
+      function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+      function computeDir() {
+        let dir = (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
+        if (pointer.down) dir = (pointer.x < window.innerWidth * 0.5) ? -1 : 1;
+        return clamp(dir, -1, 1);
+      }
+
+      /* ================= GAME STATE ================= */
+      const STATE = { BOOT: "boot", START: "start", SELECT: "select", PLAY: "play", OVER: "over" };
+      let state = STATE.BOOT;
+
+      // Speeds mimicking your other game
+      const PLAYER_SPEED = 480; // px/s
+      const SPRUCE_SPEED = 720; // px/s
+
+      const game = {
+        time: 0,
+        meters: 0,      // 10 m/s
+        spruces: [],
+        spawnBucket: 0,
+        player: {
+          x: 0,
+          y: 0,
+          w: 56,
+          h: 56,
+          img: null,
+          facing: 1
+        }
+      };
+
+      function resetRun() {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+
+        game.time = 0;
+        game.meters = 0;
+        game.spruces = [];
+        game.spawnBucket = 0;
+
+        const size = Math.max(44, Math.min(76, Math.floor(Math.min(w, h) * 0.105)));
+        game.player.w = size;
+        game.player.h = size;
+        game.player.x = w * 0.5;
+        game.player.y = h * 0.18;
+        game.player.facing = 1;
+      }
+
+      /* ================= OBSTACLE SPAWNING (cluster logic) ================= */
+      function spawnSpruceCluster(images) {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+
+        const t = game.time;
+        const extra = Math.min(Math.floor(t / 5), 7);
+        const count = 3 + extra + Math.floor(Math.random() * 2);
+
+        const baseX = Math.random() * (w - 160) + 80;
+        const spread = 60 + extra * 15;
+
+        const baseSize = Math.max(36, Math.min(66, Math.floor(Math.min(w, h) * 0.09)));
+
+        for (let i = 0; i < count; i++) {
+          game.spruces.push({
+            x: baseX + (Math.random() - 0.5) * spread,
+            y: h + 50 + Math.random() * 50,
+            w: baseSize,
+            h: baseSize,
+            img: images.spruce
+          });
+        }
+      }
+
+      /* ================= DRAW ================= */
+      function setFont(sizePx, weight = 700) {
+        ctx.font = `${weight} ${sizePx}px Silkscreen, monospace`;
+        ctx.textBaseline = "top";
+      }
+
+      function drawImageCover(img) {
+        const cw = window.innerWidth;
+        const ch = window.innerHeight;
+        const iw = img.width;
+        const ih = img.height;
+        const scale = Math.max(cw / iw, ch / ih);
+        const dw = iw * scale;
+        const dh = ih * scale;
+        const dx = (cw - dw) * 0.5;
+        const dy = (ch - dh) * 0.5;
+        ctx.drawImage(img, dx, dy, dw, dh);
+      }
+
+      function drawHUD() {
+        const pad = 12;
+        setFont(16, 700);
+        ctx.fillStyle = "#111";
+        ctx.fillText(`${Math.floor(game.meters)} m`, pad, pad);
+      }
+
+      function drawSpruces() {
+        for (const s of game.spruces) {
+          ctx.drawImage(s.img, s.x - s.w * 0.5, s.y - s.h * 0.5, s.w, s.h);
+        }
+      }
+
+      function drawPlayer() {
+        const p = game.player;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        if (p.facing === -1) ctx.scale(-1, 1);
+        ctx.drawImage(p.img, -p.w * 0.5, -p.h * 0.5, p.w, p.h);
+        ctx.restore();
+      }
+
+      /* ================= UPDATE ================= */
+      function update(dt, images) {
+        game.time += dt;
+        game.meters += 10 * dt;
+
+        const dir = computeDir();
+
+        // player movement
+        const w = window.innerWidth;
+        game.player.x += dir * PLAYER_SPEED * dt;
+        game.player.x = clamp(game.player.x, 40, w - 40);
+
+        if (dir !== 0) game.player.facing = dir;
+
+        // spawn curve copied from your other game
+        const spawnProbPerFrameAt60fps = Math.min(0.03 + game.time * 0.003, 0.35);
+        const clustersPerSecond = spawnProbPerFrameAt60fps * 60;
+
+        game.spawnBucket += dt * clustersPerSecond;
+        while (game.spawnBucket >= 1) {
+          spawnSpruceCluster(images);
+          game.spawnBucket -= 1;
+        }
+
+        // move spruces up
+        for (const s of game.spruces) s.y -= SPRUCE_SPEED * dt;
+
+        // cleanup
+        game.spruces = game.spruces.filter(s => s.y > -80);
+
+        // collision with SMALLER hitboxes
+        const pHB = makeHitboxCentered(
+          game.player.x, game.player.y, game.player.w, game.player.h, PLAYER_HITBOX_SCALE
+        );
+
+        for (const s of game.spruces) {
+          const sHB = makeHitboxCentered(s.x, s.y, s.w, s.h, SPRUCE_HITBOX_SCALE);
+
+          if (aabb(pHB, sHB)) {
+            state = STATE.OVER;
+            showOverlay("over");
+            overStats.textContent = `You skied ${Math.floor(game.meters)} meters.`;
+            stopMusic();
+            break;
+          }
+        }
+      }
+
+      function render(images) {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+        if (state === STATE.START) {
+          drawImageCover(images.start);
+          return;
+        }
+        if (state === STATE.SELECT) return;
+
+        drawSpruces();
+        drawPlayer();
+        drawHUD();
+
+        if (state === STATE.OVER) {
+          const w = window.innerWidth;
+          setFont(22, 700);
+          ctx.fillStyle = "#111";
+          const text = "CRASHED!";
+          const tw = ctx.measureText(text).width;
+          ctx.fillText(text, (w - tw) / 2, 24);
+        }
+      }
+
+      /* ================= FIXED TIMESTEP LOOP ================= */
+      let last = performance.now();
+      let accumulator = 0;
+      const FIXED_DT = 1 / 120;
+      const MAX_ACCUM = 0.25;
+
+      async function boot() {
+        const [start, spruce, isak, assar, eli] = await Promise.all([
+          loadImage(ASSETS.start),
+          loadImage(ASSETS.spruce),
+          loadImage(ASSETS.isak),
+          loadImage(ASSETS.assar),
+          loadImage(ASSETS.eli),
+        ]);
+
+        const images = { start, spruce, isak, assar, eli };
+
+        state = STATE.START;
+        showOverlay("start");
+
+        startBtn.addEventListener("click", () => {
+          state = STATE.SELECT;
+          showOverlay("select");
+        });
+
+        document.querySelectorAll(".pick").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const key = btn.getAttribute("data-player");
+            game.player.img = images[key];
+            resetRun();
+            state = STATE.PLAY;
+            showOverlay("");
+            startMusic();
+          });
+        });
+
+        retryBtn.addEventListener("click", () => {
+          resetRun();
+          state = STATE.PLAY;
+          showOverlay("");
+          startMusic();
+        });
+
+        backBtn.addEventListener("click", () => {
+          state = STATE.START;
+          showOverlay("start");
+          stopMusic();
+        });
+
+        function frame(now) {
+          let frameDt = (now - last) / 1000;
+          last = now;
+
+          frameDt = Math.max(0, Math.min(frameDt, 0.1));
+          accumulator += frameDt;
+          if (accumulator > MAX_ACCUM) accumulator = MAX_ACCUM;
+
+          while (accumulator >= FIXED_DT) {
+            if (state === STATE.PLAY) update(FIXED_DT, images);
+            accumulator -= FIXED_DT;
+          }
+
+          render(images);
+          requestAnimationFrame(frame);
+        }
+
+        requestAnimationFrame(frame);
+      }
+
+      boot().catch(err => {
+        console.error(err);
+        alert("Missing files. Put start.png, spruce.png, isak.png, assar.png, eli.png and music.mp3 next to this HTML file.");
+      });
+    })();
+  </script>
+</body>
+</html>
