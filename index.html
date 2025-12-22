@@ -11,17 +11,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet">
 
   <style>
-    * {
-      box-sizing: border-box;
-      font-family: "Silkscreen", monospace;
-    }
+    * { box-sizing: border-box; font-family: "Silkscreen", monospace; }
 
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
-      overflow: hidden;
+      overflow-x: hidden; /* ✅ prevent page-level horizontal scroll */
+      overflow-y: hidden;
       background-color: #050510;
       color: #ffffff;
     }
@@ -30,36 +28,71 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      position: relative;
     }
 
-    /* Pixel-art starry sky */
-    body::before {
+    /* -------- Star twinkle (color shifting) -------- */
+    @keyframes twinkleColorA {
+      0%   { opacity: 0.4; filter: hue-rotate(0deg); }
+      25%  { opacity: 0.85; filter: hue-rotate(40deg); }
+      50%  { opacity: 0.5; filter: hue-rotate(160deg); }
+      75%  { opacity: 0.9; filter: hue-rotate(280deg); }
+      100% { opacity: 0.4; filter: hue-rotate(360deg); }
+    }
+
+    @keyframes twinkleColorB {
+      0%   { opacity: 0.3; filter: hue-rotate(90deg); }
+      30%  { opacity: 0.75; filter: hue-rotate(210deg); }
+      60%  { opacity: 0.5; filter: hue-rotate(330deg); }
+      100% { opacity: 0.3; filter: hue-rotate(450deg); }
+    }
+
+    body::before,
+    body::after {
       content: "";
       position: fixed;
       inset: 0;
-      width: 100vw;
-      height: 100vh;
-      background:
-        radial-gradient(1px 1px at 10% 20%, #fff, transparent),
-        radial-gradient(1px 1px at 30% 80%, #fff, transparent),
-        radial-gradient(1px 1px at 50% 40%, #fff, transparent),
-        radial-gradient(1px 1px at 70% 60%, #fff, transparent),
-        radial-gradient(1px 1px at 90% 30%, #fff, transparent),
-        radial-gradient(1px 1px at 20% 50%, #fff, transparent),
-        radial-gradient(1px 1px at 80% 10%, #fff, transparent);
-      background-size: 200px 200px;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
       image-rendering: pixelated;
-      opacity: 0.8;
       z-index: 0;
     }
 
+    body::before {
+      background:
+        radial-gradient(1px 1px at 10% 20%, #ff4d4d, transparent),
+        radial-gradient(1px 1px at 30% 80%, #4dfff3, transparent),
+        radial-gradient(1px 1px at 50% 40%, #ffe44d, transparent),
+        radial-gradient(1px 1px at 70% 60%, #c44dff, transparent),
+        radial-gradient(1px 1px at 90% 30%, #4dfff3, transparent),
+        radial-gradient(1px 1px at 20% 50%, #ff4d4d, transparent),
+        radial-gradient(1px 1px at 80% 10%, #ffe44d, transparent);
+      background-size: 200px 200px;
+      animation: twinkleColorA 4s steps(1) infinite;
+    }
+
+    body::after {
+      background:
+        radial-gradient(1px 1px at 15% 25%, #c44dff, transparent),
+        radial-gradient(1px 1px at 35% 75%, #ffe44d, transparent),
+        radial-gradient(1px 1px at 55% 45%, #ff4d4d, transparent),
+        radial-gradient(1px 1px at 75% 65%, #4dfff3, transparent),
+        radial-gradient(1px 1px at 95% 35%, #c44dff, transparent),
+        radial-gradient(1px 1px at 25% 55%, #4dfff3, transparent),
+        radial-gradient(1px 1px at 85% 15%, #ffe44d, transparent);
+      background-size: 140px 140px;
+      animation: twinkleColorB 5.5s steps(1) infinite;
+    }
+
+    /* -------- Content -------- */
     .container {
       position: relative;
       z-index: 1;
       width: 100%;
       max-width: 1100px;
-      padding-left: env(safe-area-inset-left);
-      padding-right: env(safe-area-inset-right);
+      padding-left: max(0px, env(safe-area-inset-left));
+      padding-right: max(0px, env(safe-area-inset-right));
       text-align: center;
     }
 
@@ -73,9 +106,8 @@
 
     .menu {
       display: flex;
-      justify-content: center;
+      justify-content: center; /* ✅ centered on desktop */
       gap: 48px;
-      flex-wrap: wrap;
     }
 
     .app {
@@ -86,6 +118,7 @@
       align-items: center;
       gap: 14px;
       cursor: pointer;
+      flex: 0 0 auto;
     }
 
     .app-icon {
@@ -97,7 +130,6 @@
       transition: transform 0.15s ease;
     }
 
-    /* ✅ Only scale the icon, not the text */
     .app:hover .app-icon {
       transform: scale(1.05);
     }
@@ -105,24 +137,43 @@
     .app-label {
       font-size: 16px;
       line-height: 1;
+      white-space: nowrap;
     }
 
-    /* Mobile tweaks */
-    @media (max-width: 600px) {
+    /* ✅ Mobile: horizontally scrollable icon row */
+    @media (max-width: 700px) {
       .menu {
-        gap: 32px;
+        justify-content: flex-start;
+        gap: 20px;
+
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+
+        padding: 0 16px;          /* comfy scroll edges */
+        width: 100%;
+        max-width: 100%;
+
+        scroll-snap-type: x mandatory;
+      }
+
+      .menu::-webkit-scrollbar {
+        display: none;            /* hide scrollbar on iOS/Chrome mobile */
+      }
+
+      .app {
+        scroll-snap-align: center;
       }
 
       .app-icon {
-        width: 140px;
-        height: 140px;
+        width: 150px;
+        height: 150px;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- Click sound -->
   <audio id="clickSound" src="click.mp3" preload="auto"></audio>
 
   <div class="container">
@@ -133,18 +184,18 @@
     />
 
     <div class="menu">
-
-    <a href="/emojidownhill" class="app" data-link="/emojidownhill">
+      <a href="/emojidownhill" class="app" data-link="/emojidownhill">
         <img src="emoji-downhill.png" alt="Emoji Downhill" class="app-icon" />
         <div class="app-label">EMOJI DOWNHILL</div>
       </a>
+
 
       <a href="/emojihunter" class="app" data-link="/emojihunter">
         <img src="emoji-hunter.png" alt="Emoji Hunter" class="app-icon" />
         <div class="app-label">EMOJI HUNTER</div>
       </a>
 
-  
+
     </div>
   </div>
 
@@ -158,4 +209,11 @@
         clickSound.play();
 
         const link = app.getAttribute("data-link");
-        setTimeout(
+        setTimeout(() => {
+          window.location.href = link;
+        }, 150);
+      });
+    });
+  </script>
+</body>
+</html>
