@@ -202,22 +202,19 @@
 
   const animalEmojis = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐯','🦁','🐮','🐷','🐸','🦄','🐵','🦒','🐘','🐴','🐗','🦓'];
 
-  /* Sounds */
-  const clickSound = new Audio('step.mp3');
-  const stepSound  = new Audio('step.mp3');
-  const goSound    = new Audio('click.mp3');
+  /* CLICK SOUND ONLY */
+  const clickSound = new Audio('click.mp3');
+  clickSound.preload = 'auto';
 
-  [clickSound, stepSound, goSound].forEach(s => s.preload = 'auto');
-
-  function play(sound) {
+  function playClick() {
     try {
-      sound.currentTime = 0;
-      sound.play();
+      clickSound.currentTime = 0;
+      clickSound.play();
     } catch {}
   }
 
   document.querySelectorAll('button').forEach(btn => {
-    btn.addEventListener('click', () => play(clickSound));
+    btn.addEventListener('click', playClick);
   });
 
   /* Logo emoji animation */
@@ -305,20 +302,15 @@
 
     let n = 3;
     countdownText.textContent = n;
-    play(stepSound);
 
     countdownTimer = setInterval(() => {
       n--;
-
       if (n > 0) {
         countdownText.textContent = n;
-        play(stepSound);
         return;
       }
 
       countdownText.textContent = 'GO!';
-      play(goSound);
-
       clearInterval(countdownTimer);
       countdownTimer = null;
 
