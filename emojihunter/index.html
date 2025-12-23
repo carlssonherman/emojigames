@@ -25,10 +25,12 @@
       -webkit-tap-highlight-color: transparent;
     }
 
+    /* Use dynamic viewport height on mobile (fixes centering issues) */
     #game-area {
       position: relative;
       width: 100vw;
-      height: 100vh;
+      height: 100vh;   /* fallback */
+      height: 100dvh;  /* modern mobile viewport */
       background-color: #B19090;
       overflow: hidden;
       touch-action: manipulation;
@@ -43,13 +45,31 @@
     #score-board { left: 10px; }
     #timer { right: 10px; }
 
+    /*
+      Reliable centering on mobile:
+      - inset: 0 anchors to visible area
+      - flex centers without transform weirdness
+      - safe-area padding helps notches/home-indicator
+    */
     .center-screen {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: min(92vw, 560px);
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       text-align: center;
+      padding:
+        calc(16px + env(safe-area-inset-top))
+        4vw
+        calc(16px + env(safe-area-inset-bottom));
+      z-index: 10;
+    }
+
+    /* constrain width inside centered overlays */
+    .center-screen > * {
+      max-width: 560px;
+      width: 100%;
     }
 
     .big-title {
@@ -105,7 +125,7 @@
 
     #results {
       display: none;
-      z-index: 10;
+      z-index: 20;
     }
 
     #results p {
@@ -116,7 +136,7 @@
     /* Countdown */
     #countdown {
       display: none;
-      z-index: 20;
+      z-index: 30;
       pointer-events: none;
     }
 
@@ -155,10 +175,12 @@
       H<span>💣</span>NTER
     </h1>
 
-    <button class="level-button" id="easy-btn">😹 Easy</button>
-    <button class="level-button" id="medium-btn">😺 Medium</button><br>
-    <button class="level-button" id="hard-btn">😼 Hard</button>
-    <button class="level-button" id="super-btn">🙀 Super</button>
+    <div>
+      <button class="level-button" id="easy-btn">😹 Easy</button>
+      <button class="level-button" id="medium-btn">😺 Medium</button><br>
+      <button class="level-button" id="hard-btn">😼 Hard</button>
+      <button class="level-button" id="super-btn">🙀 Super</button>
+    </div>
 
     <div id="credit">
       © <a href="http://emojigames.se" target="_blank" rel="noopener noreferrer">EMOJI GAMES</a>
@@ -181,8 +203,10 @@
       OVER
     </h1>
     <p id="final-message"></p>
-    <button class="play-again-button" onclick="tryAgain()">Try Again</button>
-    <button class="restart-button" onclick="goToStartScreen()">Change level</button>
+    <div>
+      <button class="play-again-button" onclick="tryAgain()">Try Again</button>
+      <button class="restart-button" onclick="goToStartScreen()">Change level</button>
+    </div>
   </div>
 
 </div>
@@ -291,18 +315,21 @@
     if (isCountingDown) return;
 
     results.style.display = 'none';
+    countdownOverlay.style.display = 'none';
+
     levelButtons.style.display = 'none';
     scoreBoard.style.display = 'none';
     timerBox.style.display = 'none';
 
     clearInterval(logoEmojiInterval);
 
-    countdownOverlay.style.display = 'block';
+    countdownOverlay.style.display = 'flex';
     isCountingDown = true;
 
     let n = 3;
     countdownText.textContent = n;
 
+    if (countdownTimer) clearInterval(countdownTimer);
     countdownTimer = setInterval(() => {
       n--;
       if (n > 0) {
@@ -325,6 +352,10 @@
   function startGame() {
     gameFinished = false;
     clearDots();
+
+    /* ✅ FIX 1: Ensure overlays are hidden when a new game starts */
+    results.style.display = 'none';
+    countdownOverlay.style.display = 'none';
 
     gameArea.style.backgroundColor = '#B19090';
 
@@ -353,6 +384,7 @@
       dot.onclick = () => {
         dot.textContent = '💥';
         setTimeout(() => {
+          if (!dot.isConnected) return;
           dot.remove();
           remaining--;
           scoreEl.textContent = remaining;
@@ -376,7 +408,7 @@
     scoreBoard.style.display = 'none';
     timerBox.style.display = 'none';
 
-    results.style.display = 'block';
+    results.style.display = 'flex';
     finalMessage.textContent =
       remaining === 0
         ? `You finished in ${30 - timeLeft} seconds!`
@@ -393,7 +425,8 @@
 
     countdownOverlay.style.display = 'none';
     results.style.display = 'none';
-    levelButtons.style.display = 'block';
+
+    levelButtons.style.display = 'flex';
     scoreBoard.style.display = 'none';
     timerBox.style.display = 'none';
 
@@ -401,6 +434,7 @@
   }
 
   function tryAgain() {
+    // fast loop: skip countdown
     startGame();
   }
 
