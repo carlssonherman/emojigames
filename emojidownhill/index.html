@@ -305,6 +305,15 @@
   }
   #pause-overlay.visible { display: flex; }
 
+  /* Link styling for footer (white, no underline) */
+  .eg-link,
+  .eg-link:visited,
+  .eg-link:hover,
+  .eg-link:active {
+    color: #f5fbff;
+    text-decoration: none;
+  }
+
   /* Mobile: stack buttons + hide gameplay legend + hide mountains */
   @media (max-width: 700px), (pointer: coarse) {
     #start-inner, #game-over-inner { padding: 18px 16px; }
@@ -365,7 +374,7 @@
 
   <div id="start-inner">
     <h1 class="ice-title">
-      <span class="ice-line">MOUNT EMOJI</span>
+      <span class="ice-line">EMOJI</span>
       <span class="ice-line">DOWNHILL</span>
       <span class="pix pix-1"></span><span class="pix pix-2"></span><span class="pix pix-3"></span>
       <span class="pix pix-4"></span><span class="pix pix-5"></span><span class="pix pix-6"></span><span class="pix pix-7"></span>
@@ -387,7 +396,7 @@
     <p id="start-legend">PLAYER 1: Arrow keys &nbsp;|&nbsp; PLAYER 2: A / D</p>
 
     <br><br><br>
-    <p>© emoji games</p>
+    <p>© <a href="http://emojigames.se" rel="noopener" class="eg-link">emoji games</a></p>
   </div>
 </div>
 
